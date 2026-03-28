@@ -1,5 +1,4 @@
 const { contextBridge, ipcRenderer } = require('electron');
-var ByteBuffer = require('bytebuffer');
 
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
@@ -43,7 +42,7 @@ contextBridge.exposeInMainWorld('electron', {
 
     // User account
     getPossibleOutcomes(resultsToGet) {
-      console.log(resultsToGet);
+      console.log("getPossibleOutcomes: " + resultsToGet);
       return new Promise((resolve) => {
         ipcRenderer.send('getTradeUpPossible', resultsToGet);
         ipcRenderer.once('getTradeUpPossible-reply', (evt, message) => {
@@ -116,7 +115,7 @@ contextBridge.exposeInMainWorld('electron', {
     startQRLogin(shouldRemember) {
       return new Promise((resolve) => {
         ipcRenderer.removeAllListeners('login-reply');
-
+        
         ipcRenderer.send('startQRLogin', shouldRemember);
         ipcRenderer.once('login-reply', (event, arg) => {
           resolve(arg);
@@ -125,7 +124,7 @@ contextBridge.exposeInMainWorld('electron', {
     },
 
     cancelQRLogin() {
-      ipcRenderer.send('cancelQRLogin');
+      ipcRenderer.send('qrLogin:cancel');
     },
 
     // USER CONNECTIONS
@@ -137,8 +136,6 @@ contextBridge.exposeInMainWorld('electron', {
       sharedSecret,
       clientjstoken
     ) {
-      console.log(clientjstoken);
-
       if (authcode == '') {
         authcode = null;
       }
@@ -289,6 +286,41 @@ contextBridge.exposeInMainWorld('electron', {
       if (validChannels.includes(channel)) {
         // Deliberately strip event as it includes `sender`
         ipcRenderer.on(channel, (event, ...args) => func(...args));
+      }
+    },
+    removeAllListeners(channel) {
+      const validChannels = [
+        'ipc-example',
+        'login',
+        'userEvents',
+        'refreshInventory',
+        'renameStorageUnit',
+        'removeFromStorageUnit',
+        'errorMain',
+        'signOut',
+        'retryConnection',
+        'needUpdate',
+        'download',
+        'electron-store-getAccountDetails',
+        'electron-store-get',
+        'electron-store-set',
+        'pricing',
+        'getPrice',
+        'windowsActions',
+        'getTradeUpPossible',
+        'processTradeOrder',
+        'setItemsPositions',
+        'openContainer',
+        'forceLogin',
+        'checkSteam',
+        'closeSteam',
+        'updater',
+        'startQRLogin',
+        'cancelQRLogin',
+        'qrLogin:show',
+      ];
+      if (validChannels.includes(channel)) {
+        ipcRenderer.removeAllListeners(channel);
       }
     },
     once(channel, func) {

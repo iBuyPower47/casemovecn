@@ -1,5 +1,5 @@
-import { ItemRow } from "../../renderer/interfaces/items";
-import { WalletInterface } from "../../renderer/interfaces/states";
+import { ItemRow } from "renderer/interfaces/items";
+import { WalletInterface } from "renderer/interfaces/states";
 
 export interface LoginCommandReturnPackage {
   steamID: string
@@ -32,6 +32,7 @@ export interface LoginOptions {
   wrongLoginToken: string
   webtokenNotJSON: string
   webtokenNotLoggedIn: string
+  missingRequiredField: string
 }
 
 export type LoginNotificationObject = {

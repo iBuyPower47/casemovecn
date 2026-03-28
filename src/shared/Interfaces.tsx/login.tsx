@@ -1,34 +1,35 @@
-
-
 export interface DispatchStoreBuildingObject {
-  name: string
-  action: Function
+  name: string;
+  action: Function;
 }
 export type DispatchStoreHandleBuildingOptionsClass = {
   [key in keyof DispatchStoresettingsOptions]: DispatchStoreBuildingObject;
-}
+};
 
 export interface DispatchStoresettingsOptions {
-  source: string
-  locale: string
-  os: string
-  columns: string
-  devmode: string
-  fastmove: string
-  currency: string
-  steamLoginShow: string
+  source: string;
+  locale: string;
+  os: string;
+  columns: string;
+  devmode: string;
+  fastmove: string;
+  currency: string;
+  steamLoginShow: string;
+  themeMode: string;
+  themeEffects: string;
+  themeCheckpoint: string;
+  themeParticlesEnabled: string;
 }
-
 
 // Store
 export interface DispatchIPCBuildingObject {
-  endpoint: Function
-  action: Function
+  endpoint: Function;
+  action: Function;
 }
 export type DispatchIPCHandleBuildingOptionsClass = {
   [key in keyof DispatchIPCsettingsOptions]: DispatchIPCBuildingObject;
-}
+};
 
 export interface DispatchIPCsettingsOptions {
-  currency: string
+  currency: string;
 }
