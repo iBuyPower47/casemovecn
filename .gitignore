@@ -1,6 +1,5 @@
 .idea/
 node_modules/
-release/app/
 release/app/dist/
 release/build/
 dependencies-before.txt

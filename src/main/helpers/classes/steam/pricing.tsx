@@ -1,27 +1,26 @@
 import { getValue, setValue } from './settings';
-import axios from 'axios';
-import EventEmitter from 'events';
-import dotenv from 'dotenv';
-dotenv.config()
 
+const axios = require('axios');
+require('dotenv').config();
+const EventEmitter = require('events');
 class MyEmitter extends EventEmitter {}
-export const pricingEmitter = new MyEmitter();
+const pricingEmitter = new MyEmitter();
 
 // Get latest prices, if fail use backup
 
-export async function getPricesBackup(cas) {
+async function getPricesBackup(cas) {
   const pricesBackup = require('./backup/prices.json');
-  cas.setPricing(pricesBackup);
+  cas.setPricing(pricesBackup, 'setPrice error');
 }
-export async function getPrices(cas) {
-  const url = 'https://cdn.skinledger.com/casemove/prices.json';
+async function getPrices(cas) {
+  const url =
+    'https://cdn.skinledger.com/casemove/prices.json';
   axios
     .get(url)
     .then(function (response) {
       console.log(
         'prices, response',
-        typeof response === 'object',
-        response !== null
+        typeof response === 'object' && response !== null
       );
       if (typeof response === 'object' && response !== null) {
         cas.setPricing(response.data, 'normal');
@@ -35,7 +34,7 @@ export async function getPrices(cas) {
     });
 }
 
-export let currencyCodes = {
+let currencyCodes = {
   1: 'USD',
   2: 'GBP',
   3: 'EUR',
@@ -87,7 +86,7 @@ export let currencyCodes = {
 
 // import { DOMParser } from 'xmldom'
 // RUN PROGRAMS
-export class runItems {
+class runItems {
   steamUser;
   seenItems;
   packageToSend;
@@ -112,6 +111,9 @@ export class runItems {
     this.prices = pricingData;
   }
   async makeSinglerequest(itemRow) {
+    if (!this.prices) {
+      return itemRow;
+    }
     let itemNamePricing = itemRow.item_name.replaceAll(
       '(Holo/Foil)',
       '(Holo-Foil)'
@@ -122,50 +124,31 @@ export class runItems {
         itemNamePricing = itemRow.item_name;
       }
     }
-
     if (this.prices[itemNamePricing] !== undefined) {
-      let pricingDict = {
-        buff163: this.prices[itemNamePricing]?.buff163?.starting_at?.price,
-        steam_listing: this.prices[itemNamePricing]?.steam?.last_90d,
-        skinport: this.prices[itemNamePricing]?.skinport?.starting_at,
-        bitskins: 0,
+      itemRow['pricing'] = {
+        buff163: this.prices[itemNamePricing]?.buff163,
+        steam_listing: this.prices[itemNamePricing]?.steam,
       };
-      if (this.prices[itemNamePricing]?.steam?.last_30d) {
-        pricingDict.steam_listing =
-          this.prices[itemNamePricing]?.steam?.last_30d;
-      }
-      if (this.prices[itemNamePricing]?.steam?.last_7d) {
-        pricingDict.steam_listing =
-          this.prices[itemNamePricing]?.steam?.last_7d;
-      }
-
-      if (this.prices[itemNamePricing]?.steam?.last_24h) {
-        pricingDict.steam_listing =
-          this.prices[itemNamePricing]?.steam?.last_24h;
-      }
-      if (
-        this.prices[itemNamePricing]?.steam?.last_7d == 0 &&
-        this.prices[itemNamePricing]?.buff163?.starting_at?.price > 2000
-      ) {
-        pricingDict.steam_listing = this.prices[itemNamePricing]?.buff163.starting_at?.price * 0.8;
-      }
-      itemRow['pricing'] = pricingDict;
       return itemRow;
     } else {
-      let pricingDict = {
+      itemRow['pricing'] = {
         buff163: 0,
         steam_listing: 0,
-        skinport: 0,
-        bitskins: 0,
       };
-      itemRow['pricing'] = pricingDict;
       return itemRow;
     }
   }
   async handleItem(itemRow) {
+    if (!this.prices) {
+      return;
+    }
     let returnRows = [] as any;
     itemRow.forEach((element) => {
       if (element.item_name !== undefined && element.item_moveable == true) {
+          this.makeSinglerequest(element).then((returnValue) => {
+            returnRows.push(returnValue);
+          });
+      }else if (element.item_moveable == false && element.trade_protected !== undefined) {
         this.makeSinglerequest(element).then((returnValue) => {
           returnRows.push(returnValue);
         });
@@ -184,3 +167,10 @@ export class runItems {
     pricingEmitter.emit('result', itemRow);
   }
 }
+module.exports = {
+  runItems,
+  pricingEmitter,
+  currencyCodes,
+};
+export { runItems, pricingEmitter, currencyCodes };
+

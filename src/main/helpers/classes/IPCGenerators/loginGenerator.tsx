@@ -1,6 +1,6 @@
-import { LoginCommand, LoginCommandReturnPackage, LoginOptions } from "../../../../shared/Interfaces.tsx/store";
+import { LoginCommand, LoginCommandReturnPackage, LoginOptions } from "shared/Interfaces.tsx/store";
 
-export class LoginGenerator {
+class LoginGenerator {
   returnValue: LoginCommand = {
     responseStatus: 'defaultError',
     returnPackage: {}
@@ -18,3 +18,8 @@ export class LoginGenerator {
   }
 
 }
+
+module.exports = {
+  LoginGenerator
+};
+export { LoginGenerator };

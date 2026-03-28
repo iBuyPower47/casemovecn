@@ -1,31 +1,25 @@
-import CC from 'currency-converter-lt'
-
+// const CC = require('currency-converter-lt');
+const axios = require('axios');
 async function setBackUp(currencyClass) {
   let rates = require('./backup/currency.json')
   currencyClass.setRates(rates.rates)
 }
 
 async function getLiveRates(currencyClass) {
-  console.log('here')
-    let currencyConverter = new CC({isDecimalComma:true});
-    currencyConverter.from('USD').to('EUR').amount(100).convert().then((response) => {
-      console.log(response)
-
-      let secondConverter = new CC();
-      secondConverter.from('USD').to('EUR').amount(100).convert().then((secondResponse) => {
-        if (response < secondResponse) {
-          currencyClass.setCurrencyClass(currencyConverter)
-        } else {
-          currencyClass.setCurrencyClass(secondConverter)
-        }
-      })
-    }).catch(_error => {
-       console.log('Error initilizing')
-    } )
-    console.log('here 2')
+  try {
+    // 使用 axios 替代 fetch
+    const response = await axios.get('https://open.er-api.com/v6/latest/USD');
+    const data = response.data;
+    if (data && data.rates) {
+      currencyClass.setRates(data.rates);
+      console.log('getLiveRates success');
+    }
+  } catch (error) {
+    console.log('getLiveRates error:', error);
+  }
 }
 
-export class currency {
+class currency {
   rates = {};
   currencyConverter
   seenRates = {}
@@ -84,4 +78,9 @@ export class currency {
 //    })
 //});
 
+
+module.exports = {
+  currency
+};
+export { currency };
 

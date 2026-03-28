@@ -1,13 +1,15 @@
-import Store from 'electron-store'
-import { safeStorage } from 'electron';
-import axios from 'axios';
+const Store = require('electron-store');
+const { safeStorage } = require('electron');
+const axios = require('axios');
+// import {Store} from 'electron-store'
+// import { safeStorage } from 'electron';
+// import { Axios } from 'axios';
 
 import { DOMParser } from 'xmldom';
-import { WithImplicitCoercion } from 'buffer';
 async function getURL(steamID) {
   return new Promise((resolve) => {
     axios
-      .get(`https://steamcommunity.com/profiles/${steamID}/?xml=1`)
+      .get(`http://steamcommunity.com/profiles/${steamID}/?xml=1`)
       .then(function (response) {
         const parser = new DOMParser();
         resolve(
@@ -27,7 +29,7 @@ const store = new Store({
 });
 
 // Store user data
-export async function storeRefreshToken(username: string, loginKey?: string) {
+async function storeRefreshToken(username: string, loginKey?: string) {
   // Get account details
   let accountDetails = store.get('account');
   if (!accountDetails) {
@@ -58,7 +60,7 @@ export async function storeRefreshToken(username: string, loginKey?: string) {
 }
 
 // Store user data
-export async function storeUserAccount(
+async function storeUserAccount(
   username,
   displayName,
   steamID,
@@ -104,7 +106,7 @@ export async function storeUserAccount(
   });
 }
 
-export async function setAccountPosition(username, newPosition) {
+async function setAccountPosition(username, newPosition) {
   let accountDetails = store.get('account');
   if (accountDetails == undefined) {
     accountDetails = {};
@@ -120,7 +122,7 @@ export async function setAccountPosition(username, newPosition) {
 }
 
 // Delete user data
-export async function deleteUserData(username) {
+async function deleteUserData(username) {
   let statusCode = 0;
 
   // Get account details
@@ -138,28 +140,51 @@ export async function deleteUserData(username) {
 }
 
 // Get login details
-export async function getLoginDetails(username) {
+async function getLoginDetails(username) {
   const secretData = safeStorage.decryptString(
-    Buffer.from(store.get('account.' + username + '.safeData') as WithImplicitCoercion<string>, 'latin1')
+    Buffer.from(store.get('account.' + username + '.safeData'), 'latin1')
   );
   return JSON.parse(secretData);
 }
 // Get login details
-export async function getRefreshToken(username) {
+async function getRefreshToken(username) {
   const secretData = safeStorage.decryptString(
-    Buffer.from(store.get('account.' + username + '.refreshToken' ) as WithImplicitCoercion<string>, 'latin1')
+    Buffer.from(store.get('account.' + username + '.refreshToken'), 'latin1')
   );
   return secretData;
 }
 // Get all account details
-export async function getAllAccountDetails() {
+async function getAllAccountDetails() {
   return store.get('account');
 }
 
-export async function setValue(stringToSet, valueToSet) {
+async function setValue(stringToSet, valueToSet) {
   store.set(stringToSet, valueToSet);
 }
 
-export async function getValue(stringToGet) {
+async function getValue(stringToGet) {
   return store.get(stringToGet);
 }
+
+module.exports = {
+  storeUserAccount,
+  getLoginDetails,
+  getAllAccountDetails,
+  deleteUserData,
+  setAccountPosition,
+  storeRefreshToken,
+  getRefreshToken,
+  setValue,
+  getValue,
+};
+export {
+  storeUserAccount,
+  getLoginDetails,
+  getAllAccountDetails,
+  deleteUserData,
+  setAccountPosition,
+  getRefreshToken ,
+  storeRefreshToken,
+  setValue,
+  getValue,
+};

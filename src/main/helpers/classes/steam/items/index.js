@@ -1,11 +1,12 @@
 const fs = require('fs');
-const VDF = require('@node-steam/vdf');
 const axios = require('axios');
 
-const itemsLink = 'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CS2/refs/heads/master/game/csgo/pak01_dir/scripts/items/items_game.txt';
-const translationsLink =
-  'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CS2/refs/heads/master/game/csgo/pak01_dir/resource/csgo_english.txt';
-
+const itemsLink =
+  '';
+const chinese_translationsLink =
+  '';
+const english_translationsLink =
+  '';
 
 function fileCatcher(endNote) {
   return `${csgo_install_directory}${endNote}`;
@@ -13,31 +14,29 @@ function fileCatcher(endNote) {
 
 async function fileGetError(items) {
   let csgoEnglish = require('./itemsBackupFiles/csgo_english.json');
-  items.setTranslations(csgoEnglish, 'Error');
+  let csgoChinese = require('./itemsBackupFiles/csgo_schinese.json');
+  items.setTranslations(csgoChinese, csgoEnglish, 'setTranslations');
   let itemsGame = require('./itemsBackupFiles/items_game.json');
   items.setCSGOItems(itemsGame);
 }
 
 async function getTranslations(items) {
   try {
-    const returnValue = await axios.get(translationsLink).then((response) => {
-      const finalDict = {};
-      const data = response.data;
-      var ks = data.split(/\n/);
-      ks.forEach(function (value) {
-        // Iterate hits
-        var test = value.match(/"(.*?)"/g);
-        if (test && test[1]) {
-          finalDict[test[0].replaceAll('"', '').toLowerCase()] = test[1];
-        }
-      });
-
-      return finalDict;
-    });
-    returnValue['stickerkit_cs20_boost_holo'];
-    items.setTranslations(returnValue, 'normal');
+    const chinese_returnValue = await axios
+      .get(chinese_translationsLink)
+      .then((response) => response.data);
+    const english_returnValue = await axios
+      .get(english_translationsLink)
+      .then((response) => response.data);
+    chinese_returnValue['stickerkit_cs20_boost_holo'];
+    items.setTranslations(
+      chinese_returnValue,
+      english_returnValue,
+      'setTranslations - normal'
+    );
   } catch (err) {
-    console.log('Error occurred during translation parsing');
+    console.log('get Translations error');
+    console.log(err);
     fileGetError(items);
   }
 }
@@ -56,70 +55,41 @@ function updateItemsLoop(jsonData, keyToRun) {
 
 async function updateItems(items) {
   try {
-    const returnValue = await axios.get(itemsLink).then((response) => {
-      const dict_to_write = {
-        items: {},
-        paint_kits: {},
-        prefabs: {},
-        sticker_kits: {},
-        casket_icons: {},
-      };
-      const data = response.data;
-      const jsonData = VDF.parse(data);
-      dict_to_write['items'] = updateItemsLoop(jsonData, 'items');
-      dict_to_write['paint_kits'] = updateItemsLoop(jsonData, 'paint_kits');
-      dict_to_write['prefabs'] = updateItemsLoop(jsonData, 'prefabs');
-      dict_to_write['sticker_kits'] = updateItemsLoop(jsonData, 'sticker_kits');
-      dict_to_write['music_kits'] = updateItemsLoop(
-        jsonData,
-        'music_definitions'
-      );
-      dict_to_write['keychains'] = updateItemsLoop(
-        jsonData,
-        'keychain_definitions'
-      );
-      dict_to_write['graffiti_tints'] = updateItemsLoop(
-        jsonData,
-        'graffiti_tints'
-      );
-
-      dict_to_write['casket_icons'] = updateItemsLoop(
-        jsonData,
-        'alternate_icons2'
-      )['casket_icons'];
-
-      return dict_to_write;
-    });
-    // Validate data
+    const returnValue = await axios
+      .get(itemsLink)
+      .then((response) => response.data);
     returnValue['items'][1209];
     items.setCSGOItems(returnValue);
   } catch (err) {
-    console.log('Error occurred during items parsing');
+    console.log(returnValue);
     fileGetError(items);
   }
 }
 
 class items {
-  translation = {};
+  chinese_translation = {};
+  english_translation = {};
   csgoItems = {};
   constructor() {
     fileGetError(this);
-    getTranslations(this);
-    updateItems(this);
+    // getTranslations(this);
+    // updateItems(this);
   }
 
   setCSGOItems(value) {
     this.csgoItems = value;
   }
-  setTranslations(value, commandFrom) {
+  setTranslations(chinese_value, english_value, commandFrom) {
     console.log(commandFrom);
-    this.translation = value;
+    this.chinese_translation = chinese_value;
+    this.english_translation = english_value;
   }
 
   handleError(callback, args) {
     try {
       return callback.apply(this, args);
     } catch (err) {
+      // 这里注释了
       console.log(err);
       return '';
     }
@@ -127,22 +97,34 @@ class items {
 
   inventoryConverter(inventoryResult, isCasket = false) {
     var returnList = [];
-    if (typeof inventoryResult === 'object' && inventoryResult !== null) {
-      returnList;
-    } else {
-      return returnList;
-    }
+    // const jsonInventory = JSON.stringify(inventoryResult, null, 4);
+    //
+    //     // 定义要保存的文件路径，例如当前目录下的 inventory.json
+    // const filePath = './inventory.json';
+    //
+    // // 异步写入文件
+    // fs.writeFile(filePath, jsonInventory, 'utf8', (err) => {
+    //     if (err) {
+    //         console.error("Error writing inventory to JSON file:", err);
+    //     } else {
+    //         console.log(`Inventory successfully saved to ${filePath}`);
+    //     }});
+    // if (typeof inventoryResult === 'object' && inventoryResult !== null) {
+    //   returnList;
+    // } else {
+    //   return returnList;
+    // }
 
     for (const [key, value] of Object.entries(inventoryResult)) {
-
-
       if (value['def_index'] == undefined) {
         continue;
       }
       const freeRewardStatusBytes = getAttributeValueBytes(value, 277);
-      if (freeRewardStatusBytes && freeRewardStatusBytes.readUInt32LE(0) === 1) {
+      if (
+        freeRewardStatusBytes &&
+        freeRewardStatusBytes.readUInt32LE(0) === 1
+      ) {
         continue;
-
       }
       let musicIndexBytes = getAttributeValueBytes(value, 166);
       if (musicIndexBytes) {
@@ -152,7 +134,7 @@ class items {
       if (graffitiTint) {
         value.graffiti_tint = graffitiTint.readUInt32LE(0);
       }
-      let keychainIndexBytes = getAttributeValueBytes(value, 299)
+      let keychainIndexBytes = getAttributeValueBytes(value, 299);
       if (keychainIndexBytes) {
         value.keychain_index = keychainIndexBytes.readUInt32LE(0);
       }
@@ -162,9 +144,6 @@ class items {
       ) {
         continue;
       }
-      // console.log(value['item_id'])
-
-
       const returnDict = {};
       // URL
       let imageURL = this.handleError(this.itemProcessorImageUrl, [value]);
@@ -182,13 +161,21 @@ class items {
         value,
         imageURL,
       ]);
+      // 设置中文名
+      returnDict['item_chinese_name'] = this.handleError(
+        this.itemProcessorChineseName,
+        [value, imageURL]
+      );
+
       if (returnDict['item_name'] == '') {
-        console.log('Error');
-        try {
-          console.log(value, this.get_def_index(value['def_index']));
-        } catch (err) {
-          console.log(value);
-        }
+        console.log('defIndexresult:', this.get_def_index(value['def_index']));
+        // console.log('item_name_Error');
+        // console.log(value);
+        // try {
+        //   console.log(value, this.get_def_index(value['def_index']));
+        // } catch (err) {
+        //   console.log(value);
+        // }
       }
       returnDict['item_customname'] = value['custom_name'];
       returnDict['item_url'] = imageURL;
@@ -210,6 +197,7 @@ class items {
         }
       }
 
+
       if (value['casket_contained_item_count'] !== undefined) {
         returnDict['item_storage_total'] = value['casket_contained_item_count'];
       }
@@ -219,6 +207,10 @@ class items {
         returnDict['item_wear_name'] = this.handleError(getSkinWearName, [
           value['paint_wear'],
         ]);
+        returnDict['item_wear_chinese_name'] = this.handleError(
+          getSkinWearChineseName,
+          [value['paint_wear']]
+        );
         returnDict['item_paint_wear'] = value['paint_wear'];
       }
 
@@ -234,6 +226,26 @@ class items {
         this.itemProcessorHasStickersApplied,
         [returnDict, value]
       );
+
+      // 检查是否有挂件
+      returnDict['item_has_keychain'] = this.handleError(
+        this.itemProcessorHasKeyChainApplied,
+        [returnDict, value]
+      );
+
+      if (
+        returnDict['item_has_keychain'] &&
+        typeof value['keychain_index'] === 'object'
+      ) {
+        returnDict['keychain'] = this.handleError(this.keychainProcessData, [
+          value['keychain_index'],
+        ]);
+      }
+      // 如果名字里有挂件 那么has = true
+      if (returnDict['item_name'].includes('Charm')) {
+        returnDict['item_has_keychain'] = true;
+      }
+
       let equipped = this.handleError(this.itemProcessorisEquipped, [value]);
       returnDict['equipped_ct'] = equipped[0];
       returnDict['equipped_t'] = equipped[1];
@@ -272,10 +284,13 @@ class items {
       if (this.isStatTrak(value)) {
         returnDict['stattrak'] = true;
         returnDict['item_name'] = 'StatTrak™ ' + returnDict['item_name'];
+        returnDict['item_chinese_name'] =
+          'StatTrak™ ' + returnDict['item_chinese_name'];
       }
       // Star
       if (value['quality'] == 3) {
         returnDict['item_name'] = '★ ' + returnDict['item_name'];
+        returnDict['item_chinese_name'] = '★' + returnDict['item_chinese_name'];
         returnDict['item_moveable'] = true;
       }
 
@@ -289,11 +304,24 @@ class items {
         returnDict['item_moveable'] = false;
       }
 
-      // returnDict['coordinator_data'] = JSON.stringify(value);
-      // console.log(value, returnDict)
-
+      // tradeProtectedEscrowDate
+      if (value['trade_protected_escrow_date'] !== undefined) {
+        returnDict['trade_protected'] = true;
+        returnDict['item_moveable'] = false;
+      }
       returnList.push(returnDict);
     }
+    // const returnListResult = JSON.stringify(returnList, null, 4);
+    // const filePath1 = './returnList.json';
+    //
+    // // 异步写入文件
+    // fs.writeFile(filePath1, returnListResult, 'utf8', (err) => {
+    //   if (err) {
+    //     console.error('Error writing inventory to JSON file:', err);
+    //   } else {
+    //     console.log(`Inventory successfully saved to ${filePath}`);
+    //   }
+    // });
     return returnList;
   }
 
@@ -316,6 +344,20 @@ class items {
       returnDict['item_url'].includes('weapons/base_weapons')
     ) {
       if (storageRow['stickers'] !== undefined) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // 检查排除不含挂件 通过item_url
+  itemProcessorHasKeyChainApplied(returnDict, storageRow) {
+    if (
+      returnDict['item_url'].includes('econ/characters') ||
+      returnDict['item_url'].includes('econ/default_generated') ||
+      returnDict['item_url'].includes('weapons/base_weapons')
+    ) {
+      if (storageRow['keychain_index'] !== undefined) {
         return true;
       }
     }
@@ -356,6 +398,18 @@ class items {
     // Check if CSGO Case Key
     if (imageURL == 'econ/tools/weapon_case_key') {
       return 'CS:GO Case Key';
+    }
+
+    if (
+      storageRow['keychain_index'] !== undefined &&
+      storageRow['paint_wear'] === undefined
+    ) {
+      const keychainIndex = storageRow['keychain_index'];
+      const keyChainResult = this.getKeyChains(keychainIndex);
+      let nameToUse =
+        'Charm | ' + this.getTranslation(keyChainResult['loc_name']);
+
+      return nameToUse;
     }
 
     // Music kit check
@@ -436,16 +490,108 @@ class items {
       var finalName = finalName.replace('Swat', 'SWAT');
     }
 
-    // Keychain check only if not main item TODO: for item_name add keychain like stickers info
-    if (!baseOne && storageRow['keychain_index'] !== undefined) {
+    return finalName;
+  }
+
+  itemProcessorChineseName(storageRow, imageURL) {
+    const defIndexresult = this.get_def_index(storageRow['def_index']);
+
+    // Check if CSGO Case Key
+    if (imageURL == 'econ/tools/weapon_case_key') {
+      return '反恐精英武器箱钥匙';
+    }
+
+    if (
+      storageRow['keychain_index'] !== undefined &&
+      storageRow['paint_wear'] === undefined
+    ) {
       const keychainIndex = storageRow['keychain_index'];
       const keyChainResult = this.getKeyChains(keychainIndex);
       let nameToUse =
-        'Charm | ' + this.getTranslation(keyChainResult['loc_name']);
+        '挂件 | ' + this.getChineseTranslation(keyChainResult['loc_name']);
 
       return nameToUse;
     }
 
+    // Music kit check
+    if (storageRow['music_index'] !== undefined) {
+      const musicKitIndex = storageRow['music_index'];
+      const musicKitResult = this.getMusicKits(musicKitIndex);
+      let nameToUse =
+        '音乐盒 | ' + this.getChineseTranslation(musicKitResult['loc_name']);
+
+      return nameToUse;
+    }
+
+    // Main checks
+    // Get first string
+    if (defIndexresult['item_name'] !== undefined) {
+      var baseOne = this.getChineseTranslation(defIndexresult['item_name']);
+    } else if (defIndexresult['prefab'] !== undefined) {
+      const baseSkinName = this.getPrefab(defIndexresult['prefab'])[
+        'item_name'
+      ];
+      var baseOne = this.getChineseTranslation(baseSkinName);
+    }
+
+    // Get second string
+    if (
+      storageRow['stickers'] !== undefined &&
+      imageURL.includes('econ/characters/') == false
+    ) {
+      var relevantStickerData = storageRow['stickers'][0];
+      if (
+        relevantStickerData['slot'] == 0 &&
+        baseOne.includes('Coin') == false
+      ) {
+        var stickerDefIndex = this.getStickerDetails(
+          relevantStickerData['sticker_id']
+        );
+        var baseTwo = this.getChineseTranslation(stickerDefIndex['item_name']);
+      }
+    }
+    if (storageRow['paint_index'] !== undefined) {
+      var skinPatternName = this.getPaintDetails(storageRow['paint_index']);
+      var baseTwo = this.getChineseTranslation(
+        skinPatternName['description_tag']
+      );
+    }
+
+    // Get third string (wear name)
+    if (storageRow['paint_wear'] !== undefined) {
+      var baseThree = getSkinWearChineseName(storageRow['paint_wear']);
+    }
+
+    if (baseOne) {
+      var finalName = baseOne;
+      if (baseTwo) {
+        var finalName = `${baseOne} | ${baseTwo}`;
+        if (baseThree) {
+          var finalName = `${baseOne} | ${baseTwo}`;
+        }
+      }
+    }
+
+    if (storageRow['attribute'] !== undefined) {
+      for (const [, value] of Object.entries(storageRow['attribute'])) {
+        if (
+          value['def_index'] == 140 &&
+          finalName.includes('纪念品') == false
+        ) {
+          var finalName = '纪念品 ' + finalName;
+        }
+      }
+    }
+
+    // Graffiti kit check
+    if (storageRow['graffiti_tint'] !== undefined) {
+      const graffitiKitIndex = storageRow['graffiti_tint'];
+      const graffitiKitResult = capitalizeWords(
+        this.getGraffitiKitName(graffitiKitIndex).replaceAll('_', ' ')
+      );
+      var finalName = finalName + ' (' + graffitiKitResult + ')';
+      var finalName = finalName.replace('Swat', 'SWAT');
+    }
 
     return finalName;
   }
@@ -564,15 +710,46 @@ class items {
     return stickerDict;
   }
 
+  // 获取挂件数据
+  keychainProcessData(relevantkeychainData) {
+    var keychainDefIndex = this.getKeyChains(relevantkeychainData['charm_id']);
+    const keychainDict = {
+      keychain_name: this.getTranslation(keychainDefIndex['loc_name']),
+      keychain_url: keychainDefIndex['image_inventory'],
+    };
+    return keychainDict;
+  }
+
   get_def_index(def_index) {
     return this.csgoItems['items'][def_index];
   }
 
   getTranslation(csgoString) {
     let stringFormatted = csgoString.replace('#', '').toLowerCase();
-
-    return this.translation[stringFormatted].replaceAll('"', '');
+    if (stringFormatted === 'paintkit_usp_field_snake_tag') {
+      return '27';
+    }
+    try {
+      return this.english_translation[stringFormatted].replaceAll('"', '');
+    } catch (err) {
+      console.log('Translation Error', stringFormatted);
+      return null;
+    }
   }
+
+  getChineseTranslation(csgoString) {
+    let stringFormatted = csgoString.replace('#', '').toLowerCase();
+    if (stringFormatted === 'paintkit_usp_field_snake_tag') {
+      return '27';
+    }
+    try {
+      return this.chinese_translation[stringFormatted].replaceAll('"', '');
+    } catch (err) {
+      console.log('Translation Error', stringFormatted);
+      return null;
+    }
+  }
+
   getPrefab(prefab) {
     return this.csgoItems['prefabs'][prefab.toString()];
   }
@@ -619,6 +796,24 @@ function getSkinWearName(paintWear) {
     'Field-Tested',
     'Well-Worn',
     'Battle-Scarred',
+  ];
+
+  for (const [key, value] of Object.entries(skinWearValues)) {
+    if (paintWear > value) {
+      continue;
+    }
+    return skinWearNames[key];
+  }
+}
+
+function getSkinWearChineseName(paintWear) {
+  const skinWearValues = [0.07, 0.15, 0.38, 0.45, 1];
+  const skinWearNames = [
+    '崭新出厂',
+    '略有磨损',
+    '久经沙场',
+    '战痕累累',
+    '破损不堪',
   ];
 
   for (const [key, value] of Object.entries(skinWearValues)) {

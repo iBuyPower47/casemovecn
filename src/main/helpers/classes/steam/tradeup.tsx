@@ -12,7 +12,7 @@ async function setCollections(currencyClass) {
   currencyClass.setCollections(collections, directory);
 }
 
-export class tradeUps {
+class tradeUps {
   collections = {};
   seenRates = {};
   directory = {};
@@ -159,3 +159,8 @@ export class tradeUps {
     });
   }
 }
+
+module.exports = {
+  tradeUps,
+};
+export { tradeUps };

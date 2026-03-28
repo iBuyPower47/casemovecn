@@ -1,0 +1,33 @@
+{
+  "name": "casemove",
+  "productName": "CaseMoveCn",
+  "version": "2.4.0",
+  "description": "Counter-Strike 2 Storage unit manager that helps you move stuff. ",
+  "main": "./dist/main/main.js",
+  "author": {
+    "name": "Nombers",
+    "email": "casemovenombers@gmail.com",
+    "url": "https://github.com/nombersDev/casemove"
+  },
+  "contributors": [
+    {
+      "name": "AaronTarga",
+      "url": "https://github.com/AaronTarga/casemove"
+    },
+    {
+    "name": "iBuyPower47",
+    "url": "https://github.com/iBuyPower47/casemovecn"
+  }
+  ],
+  "scripts": {
+    "electron-rebuild": "node -r ts-node/register ../../.erb/scripts/electron-rebuild.js",
+    "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.js",
+    "postinstall": "npm run electron-rebuild && npm run link-modules"
+  },
+  "dependencies": {
+    "globaloffensive": "https://github.com/iBuyPower47/node-globaloffensive.git",
+    "steam-user": "^5.2.0",
+    "steam-totp": "^2.1.1",
+    "steam-session": "^1.9.3"
+  }
+}
