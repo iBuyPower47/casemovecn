@@ -20,7 +20,8 @@ export class HandleStorageData {
   async addStorage(
     storageRow: ItemRow,
     addArray: Array<ItemRowStorage> = [],
-    trackActiveStorage = true
+    trackActiveStorage = true,
+    isCancelled?: () => boolean
   ) {
     // Adding the casket ID
     if (trackActiveStorage) {
@@ -29,6 +30,12 @@ export class HandleStorageData {
 
     // Fetch the storage unit data
     let storageResult = await this._getStorageUnitData(storageRow);
+
+    // Check cancellation after async IPC call, before dispatching
+    if (isCancelled?.()) {
+      return addArray;
+    }
+
     const ClassRequest = new RequestPrices(
       this.dispatch,
       this.state.settingsReducer,
@@ -36,12 +43,11 @@ export class HandleStorageData {
     );
     ClassRequest.handleRequestArray(storageResult.combinedStorages);
 
-    const baseStorageRows =
+    const baseStorageRows = (
       addArray.length > 0
         ? addArray
-        : this.state.inventoryReducer.storageInventory.filter(
-            (item) => item.storage_id != storageRow.item_id
-          );
+        : this.state.inventoryReducer.storageInventory
+    ).filter((item) => item.storage_id != storageRow.item_id);
     const nextStorageRows = [
       ...baseStorageRows,
       ...storageResult.combinedStorages,
@@ -58,7 +64,12 @@ export class HandleStorageData {
       this.state.settingsReducer?.source?.title
     );
 
-    this.dispatch(inventorySetFilteredStorage(this.state.inventoryFiltersReducer.storageFilter, filteredStorage))
+    this.dispatch(
+      inventorySetFilteredStorage(
+        this.state.inventoryFiltersReducer.storageFilter,
+        filteredStorage
+      )
+    );
     this.dispatch(
       addStorageInventoryData(
         storageResult.rawStorages,
@@ -67,7 +78,7 @@ export class HandleStorageData {
         this.state.moveFromReducer.sortValue
       )
     );
-    return nextStorageRows
+    return nextStorageRows;
   }
 
   // Get storage unit

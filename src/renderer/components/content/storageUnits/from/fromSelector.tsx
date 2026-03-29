@@ -68,7 +68,12 @@ function content() {
             return;
           }
 
-          addArray = await storageClass.addStorage(storageRow, addArray, false);
+          addArray = await storageClass.addStorage(
+            storageRow,
+            addArray,
+            false,
+            () => disposed
+          );
         }
       } catch (error) {
         console.error('Failed to refresh open storages', error);
