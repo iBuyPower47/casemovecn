@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Disclosure } from '@headlessui/react';
 import {
   ArchiveIcon,
@@ -11,20 +11,20 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { classNames } from '../../shared/filters/inventoryFunctions';
 import MoveModal from '../../shared/modals & notifcations/modalMove';
-import { moveModalQuerySet } from '../../../../../renderer/store/actions/modalMove actions';
+import { moveModalQuerySet } from 'renderer/store/actions/modalMove actions';
 import {
   moveToClearAll,
   moveTosetSearchField,
   moveToSetStorageAmount,
-} from '../../../../../renderer/store/actions/moveToActions';
+} from 'renderer/store/actions/moveToActions';
 import PricingAmount from '../../shared/filters/pricingAmount';
 import InventoryFiltersDisclosure from '../../Inventory/filtersDisclosure';
-import { searchFilter } from '../../../../../renderer/functionsClasses/filters/search';
-import { ReducerManager } from '../../../../../renderer/functionsClasses/reducerManager';
-import { ConvertPrices } from '../../../../../renderer/functionsClasses/prices';
+import { searchFilter } from 'renderer/functionsClasses/filters/search';
+import { ReducerManager } from 'renderer/functionsClasses/reducerManager';
+import { ConvertPrices } from 'renderer/functionsClasses/prices';
 import { toGetFilterManager } from './toFilterSetup';
-import { addMajorsFilters } from '../../../../../renderer/functionsClasses/filters/filters';
-const ClassFilters = toGetFilterManager()
+import { addMajorsFilters } from 'renderer/functionsClasses/filters/filters';
+const ClassFilters = toGetFilterManager();
 
 function content() {
   const dispatch = useDispatch();
@@ -65,20 +65,41 @@ function content() {
   moveItems;
 
   // Storage count
-  let storageRow = [{ item_storage_total: 0 }];
-  if (toReducer.activeStorages.length != 0) {
-    storageRow = inventory.inventory.filter(function (item) {
-      if (item.item_id.includes(toReducer.activeStorages[0])) {
-        return item;
-      }
-    });
-  }
-  if (
-    storageRow[0]?.item_storage_total != toReducer?.activeStoragesAmount &&
-    storageRow[0]?.item_storage_total != null
-  ) {
-    dispatch(moveToSetStorageAmount(storageRow[0].item_storage_total));
-  }
+  useEffect(() => {
+    // Storage count
+    let storageRow = [{ item_storage_total: 0 }];
+    if (toReducer.activeStorages.length != 0) {
+      storageRow = inventory.inventory.filter(function (item) {
+        if (item.item_id === toReducer.activeStorages[0]) {
+          return item;
+        }
+      });
+    }
+    if (
+      storageRow[0]?.item_storage_total != toReducer?.activeStoragesAmount &&
+      storageRow[0]?.item_storage_total != null
+    ) {
+      dispatch(moveToSetStorageAmount(storageRow[0].item_storage_total));
+    }
+  }, [
+    toReducer.activeStorages,
+    inventory.inventory,
+    toReducer.activeStoragesAmount,
+  ]);
+  // let storageRow = [{ item_storage_total: 0 }];
+  // if (toReducer.activeStorages.length != 0) {
+  //   storageRow = inventory.inventory.filter(function (item) {
+  //     if (item.item_id.includes(toReducer.activeStorages[0])) {
+  //       return item;
+  //     }
+  //   });
+  // }
+  // if (
+  //   storageRow[0]?.item_storage_total != toReducer?.activeStoragesAmount &&
+  //   storageRow[0]?.item_storage_total != null
+  // ) {
+  //   dispatch(moveToSetStorageAmount(storageRow[0].item_storage_total));
+  // }
   let inventoryFilter = searchFilter(
     inventory.inventory,
     inventoryFilters,
@@ -94,7 +115,7 @@ function content() {
     );
     if (filtered.length > 0) {
       totalHighlighted +=
-        classConvert.getPrice(projectRow) * filtered[0][2].length;
+        (classConvert.getPrice(projectRow) ?? 0) * filtered[0][2].length;
     }
 
     // Get total price
@@ -102,12 +123,16 @@ function content() {
   });
   totalHighlighted = totalHighlighted.toFixed(0);
   totalAmount = totalAmount.toFixed(0);
-  addMajorsFilters(inventory.combinedInventory).then((returnValue) => {
-    ClassFilters.loadFilter(returnValue, true)
-  })
-
+  // addMajorsFilters(inventory.combinedInventory).then((returnValue) => {
+  //   ClassFilters.loadFilter(returnValue, true)
+  // })
+  useEffect(() => {
+    addMajorsFilters(inventory.combinedInventory).then((returnValue) => {
+      ClassFilters.loadFilter(returnValue, true);
+    });
+  }, [inventory.combinedInventory]);
   return (
-    <div className="bg-white mt-8 dark:bg-dark-level-one">
+    <div className="bg-[var(--bg-level-one)]">
       {/* Filters */}
 
       <MoveModal />
@@ -115,35 +140,32 @@ function content() {
       <Disclosure
         as="section"
         aria-labelledby="filter-heading"
-        className="relative grid items-center border-b dark:bg-dark-level-one dark:border-opacity-50"
+        className="relative grid items-center border-b border-[var(--border-default)] bg-[var(--bg-level-one)]"
       >
-        <div className="relative col-start-1 row-start-1 py-4 flex justify-between">
-          <div className="max-w-7xl flex items-center space-x-6 divide-x divide-gray-200 text-sm px-4 sm:px-6 lg:px-8">
+        <div className="relative col-start-1 row-start-1 py-3 flex justify-between">
+          <div className="max-w-7xl flex items-center space-x-6 divide-x divide-[var(--border-default)] text-sm px-4 sm:px-6 lg:px-8">
             <div>
-              <Disclosure.Button className="group text-gray-700 font-medium flex items-center text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-500">
+              <Disclosure.Button className="group font-medium flex items-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150">
                 <FilterIcon
-                  className="flex-none w-5 h-5 mr-2 text-gray-400 group-hover:text-gray-500"
+                  className="flex-none w-5 h-5 mr-2 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]"
                   aria-hidden="true"
                 />
-                {inventoryFilters.inventoryFilter.length - 1 == -1
-                  ? 0
-                  : inventoryFilters.inventoryFilter.length - 1}{' '}
-                Filters
+                {inventoryFilters.inventoryFilter.length} 个筛选
               </Disclosure.Button>
             </div>
 
             <div className="pl-6">
               <button
                 type="button"
-                className="text-gray-500 dark:text-gray-400"
+                className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors duration-150"
                 onClick={() => dispatch(moveToClearAll())}
               >
-                Clear all
+                清除全部
               </button>
             </div>
 
             <label htmlFor="search" className="sr-only">
-              Search items
+              搜索物品
             </label>
             <div className="relative rounded-md focus:outline-none focus:outline-none">
               <div
@@ -151,7 +173,7 @@ function content() {
                 aria-hidden="true"
               >
                 <SearchIcon
-                  className="mr-3 h-4 w-4 text-gray-400"
+                  className="mr-3 h-4 w-4 text-[var(--text-tertiary)]"
                   aria-hidden="true"
                 />
               </div>
@@ -160,15 +182,15 @@ function content() {
                 name="search"
                 id="search"
                 value={toReducer.searchInput}
-                className="block w-full pb-0.5  focus:outline-none dark:text-dark-white pl-9 sm:text-sm border-gray-300 h-7 dark:bg-dark-level-one dark:rounded-none dark:bg-dark-level-one dark:rounded-none"
-                placeholder="Search items"
+                className="block w-full pb-0.5 focus:outline-none text-[var(--text-primary)] pl-9 sm:text-sm h-7 bg-transparent placeholder:text-[var(--text-tertiary)]"
+                placeholder="搜索物品"
                 spellCheck="false"
                 onChange={(e) => dispatch(moveTosetSearchField(e.target.value))}
               />
             </div>
           </div>
           <div className="flex justify-end justify-items-end max-w-7xl px-4 sm:px-6 lg:px-8 ">
-            <div className="flex items-center divide-x divide-gray-200">
+            <div className="flex items-center divide-x divide-[var(--border-default)]">
               <div>
                 <PricingAmount
                   totalAmount={new Intl.NumberFormat(settingsData.locale, {
@@ -179,69 +201,69 @@ function content() {
                 />
               </div>
               <div className="pl-3">
-                <span className="mr-3 flex items-center text-gray-500 text-xs font-medium uppercase tracking-wide">
+                <span className="mr-3 flex items-center text-[var(--text-tertiary)] text-xs font-medium uppercase tracking-wide">
                   <ArchiveIcon
-                    className="flex-none w-5 h-5 mr-2 text-gray-400 group-hover:text-gray-500"
+                    className="flex-none w-5 h-5 mr-2 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]"
                     aria-hidden="true"
                   />{' '}
                   {1000 -
                     toReducer.activeStoragesAmount -
                     toReducer.totalItemsToMove <
                   0 ? (
-                    <span className="text-red-500">
+                    <span className="text-[var(--error)]">
                       {1000 -
                         toReducer.activeStoragesAmount -
                         toReducer.totalItemsToMove}{' '}
-                      left
+                      剩余
                     </span>
                   ) : (
-                    <span className="text-green-500">
+                    <span className="text-[var(--success)]">
                       {1000 -
                         toReducer.activeStoragesAmount -
                         toReducer.totalItemsToMove}{' '}
-                      left
+                      剩余
                     </span>
                   )}
                 </span>
               </div>
               <div className="pl-3">
-                <span className="mr-3 flex items-center text-gray-500 text-xs font-medium uppercase tracking-wide">
+                <span className="mr-3 flex items-center text-[var(--text-tertiary)] text-xs font-medium uppercase tracking-wide">
                   <SwitchHorizontalIcon
-                    className="flex-none w-5 h-5 mr-2 text-gray-400 group-hover:text-gray-500"
+                    className="flex-none w-5 h-5 mr-2 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]"
                     aria-hidden="true"
                   />{' '}
-                  <span className="text-blue-500">
-                    {toReducer.totalItemsToMove} Items
+                  <span className="text-[var(--accent-primary)]">
+                    {toReducer.totalItemsToMove} 件物品
                   </span>
                 </span>
               </div>
               <div className="pl-3">
-                <Link
-                  to=""
+                <button
                   type="button"
                   onClick={() => moveItems()}
                   className={classNames(
                     toReducer.totalItemsToMove == 0 ||
-                      toReducer.activeStorages.length == 0 || 1000 -
-                      toReducer.activeStoragesAmount -
-                      toReducer.totalItemsToMove <
-                    0
-                      ? 'pointer-events-none border-gray-100 bg-dark-level-one'
-                      : 'shadow-sm border-gray-200 bg-dark-level-three',
-                    'order-1 ml-3 inline-flex items-center px-4 py-2 border dark:border-none dark:border-opacity-0 dark:text-dark-white text-sm font-medium rounded-md text-gray-700 hover:bg-dark-level-four  sm:order-0 sm:ml-0'
+                      toReducer.activeStorages.length == 0 ||
+                      1000 -
+                        toReducer.activeStoragesAmount -
+                        toReducer.totalItemsToMove <
+                        0
+                      ? 'pointer-events-none bg-[var(--bg-level-two)] text-[var(--text-disabled)]'
+                      : 'bg-[var(--bg-level-three)] hover:bg-[var(--bg-level-four)] text-[var(--text-primary)]',
+                    'order-1 ml-3 inline-flex items-center px-4 py-2 border-none text-sm font-medium rounded-md sm:order-0 sm:ml-0'
                   )}
                 >
-                  Insert
+                  存入
                   <UploadIcon
-                    className="ml-3 dark:text-dark-white h-4 w-4 text-gray-700"
+                    className="ml-3 h-4 w-4 text-current"
                     aria-hidden="true"
                   />
-                </Link>
+                </button>
               </div>
             </div>
           </div>
         </div>
-        <InventoryFiltersDisclosure ClassFilters={ClassFilters}  />
+        <InventoryFiltersDisclosure ClassFilters={ClassFilters} />
       </Disclosure>
     </div>
   );

@@ -1,14 +1,13 @@
 import { createRoot } from 'react-dom/client';
 import { Provider } from "react-redux";
 import App from "./App";
+import AppErrorBoundary from './components/appErrorBoundary';
 import { PersistGate } from 'redux-persist/integration/react'
 import returnVar from './store/configureStore'
-import { BrowserRouter as Router } from 'react-router-dom';
-import './index.css';
-import React from 'react';
+import './styles/design-tokens.css';
+import './styles/tailwind.css';
 
-
-const myVar = returnVar();
+const myVar = returnVar()
 
 
 declare global {
@@ -21,23 +20,24 @@ declare global {
       },
       ipcRenderer: any
     }
-
+    
   }
 }
 
-
 const container = document.getElementById('root');
-if (container != null) {
-const root = createRoot(container);
-root.render(
-  <React.StrictMode>
-  <Router>
-      <Provider store={myVar.reduxStore}>
-        <PersistGate loading={null} persistor={myVar.persistor}>
-        <App />
-        </PersistGate>
-      </Provider>
-  </Router>
-   </React.StrictMode>
-);
+
+if (!container) {
+  throw new Error('Root container not found');
 }
+
+const root = createRoot(container);
+
+root.render(
+  <Provider store={myVar.reduxStore}>
+    <PersistGate loading={null} persistor={myVar.persistor}>
+      <AppErrorBoundary>
+        <App />
+      </AppErrorBoundary>
+    </PersistGate>
+  </Provider>
+);

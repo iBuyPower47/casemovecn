@@ -1,33 +1,34 @@
-import { ExternalLinkIcon } from "@heroicons/react/solid";
-import { Link } from "react-router-dom";
+import { ExternalLinkIcon } from '@heroicons/react/solid';
 
 export function RowLinkInventory({ itemRow, settingsData, userDetails }) {
+  const inventoryLinkId = itemRow?.combined_ids?.[0];
+  const steamId = userDetails?.steamID;
 
   return (
     <>
-      {settingsData.columns.includes('Inventory link') ? (
+      {settingsData.columns.includes('Inventory link') &&
+      inventoryLinkId &&
+      steamId ? (
         <td
           key={Math.random().toString(36).substr(2, 9)}
-          className="table-cell px-6 py-3 whitespace-nowrap text-sm text-gray-500 hover:text-gray-200 text-right"
+          className="table-cell px-6 py-3 whitespace-nowrap text-sm text-[var(--text-secondary)] text-right"
         >
           <div className="flex justify-center rounded-full drop-shadow-lg">
-            <Link
-              to={{
-                pathname: `https://steamcommunity.com/profiles/${userDetails.steamID}/inventory/#730_2_${itemRow.combined_ids[0]}`,
-              }}
+            <a
+              href={`https://steamcommunity.com/profiles/${steamId}/inventory/#730_2_${inventoryLinkId}`}
               target="_blank"
+              rel="noreferrer"
             >
               <ExternalLinkIcon
-                className="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-100"
+                className="h-5 w-5 text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)]"
                 aria-hidden="true"
               />
-            </Link>
+            </a>
           </div>
         </td>
       ) : (
         ''
       )}
-
     </>
   );
 }

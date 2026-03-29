@@ -1,5 +1,5 @@
 
-import { Inventory } from "../../../renderer/interfaces/states";
+import { Inventory } from "renderer/interfaces/states";
 
 const initialState: Inventory = {
   inventory: [],
@@ -31,7 +31,7 @@ const inventoryReducer = (state = initialState, action) => {
     case 'INVENTORY_STORAGES_ADD_TO':
       console.log(state)
       const add_to_filtered = state.storageInventory?.filter(id => id.storage_id != action.payload.casketID) || []
-      const add_to_filtered_raw = state.storageInventoryRaw?.filter(id => id.storage_id != action.pay) || []
+      const add_to_filtered_raw = state.storageInventoryRaw?.filter(id => id.storage_id != action.payload.casketID) || []
       action.payload.storageData.forEach(storageRow => add_to_filtered.push(storageRow))
       action.payload.storageRowsRaw.forEach(storageRow => add_to_filtered_raw.push(storageRow))
 

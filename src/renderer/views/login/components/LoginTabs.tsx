@@ -9,9 +9,9 @@ interface TabProps {
 }
 
 const tabs: TabProps[] = [
-  { name: 'QR', icon: QrcodeIcon, key: 'QR' },
-  { name: 'Webtoken', icon: WifiIcon, key: 'WEBTOKEN' },
-  { name: 'Regular', icon: LockClosedIcon, key: 'REGULAR' },
+  { name: '二维码', icon: QrcodeIcon, key: 'QR' },
+  { name: '网页令牌', icon: WifiIcon, key: 'WEBTOKEN' },
+  { name: '常规登录', icon: LockClosedIcon, key: 'REGULAR' },
 ];
 
 type LoginTabsProps = {
@@ -25,44 +25,54 @@ export default function LoginTabs({
 }: LoginTabsProps) {
   const defaultValue: LoginMethod = 'REGULAR';
   return (
-    <div className="bg-dark-level-one px-4 pt-6 sm:px-6 lg:px-8">
+    <div className="px-0 pt-6">
       <div className="mx-auto max-w-7xl">
         <div className="sm:hidden">
           <label htmlFor="tabs" className="sr-only">
-            Select a tab
+            选择登录方式
           </label>
-            <select
-              id="tabs"
-              name="tabs"
-              className="block w-full rounded-md border-none bg-white/5 py-2 pl-3 pr-10 text-base text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
-              value={tabs.find((tab) => tab.key === selectedTab)?.name}
-              onChange={e => {
-                const selectedName = e.target.value;
-                const selectedTabObj = tabs.find(tab => tab.name === selectedName);
-                if (selectedTabObj) {
-                  setSelectedTab(selectedTabObj.key);
-                }
-              }}
-            >
-              {tabs.map((tab) => (
-                <option key={tab.name} value={tab.name}>{tab.name}</option>
-              ))}
-            </select>
+          {/* Use an "onChange" listener to redirect the user to the selected tab URL. */}
+          <select
+            id="tabs"
+            name="tabs"
+            className="block w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-level-two)] py-2 pl-3 pr-10 text-base text-[var(--text-primary)] shadow-sm ring-0 focus:border-[var(--text-tertiary)] focus:ring-0 sm:text-sm"
+            defaultValue={tabs.find((tab) => tab.key === defaultValue)?.name}
+          >
+            {tabs.map((tab) => (
+              <option key={tab.name}>{tab.name}</option>
+            ))}
+          </select>
         </div>
         <div className="hidden sm:block">
           <nav className="flex place-content-center">
             <ul
               role="list"
-              className="flex  flex-none gap-x-6 px-2 text-sm font-semibold leading-6 text-gray-400"
+              className="inline-flex gap-x-2 rounded-md bg-transparent p-1 text-sm font-semibold leading-6 text-[var(--text-tertiary)]"
             >
               {tabs.map((tab) => (
                 <li key={tab.name}>
                   <button
-                      onClick={() => setSelectedTab(tab.key)} className={classNames(tab.key === selectedTab ? 'bg-dark-level-three' : '', 'flex px-3 py-1 pointer place-content-center h-full items-center rounded-md')}>
-                    <tab.icon className={classNames(tab.key === selectedTab ? 'text-dark-white' : "text-gray-400", 'h-6 w-6 pr-2')}/>
+                    onClick={() => setSelectedTab(tab.key)}
+                    className={classNames(
+                      tab.key === selectedTab
+                        ? 'bg-[#2f2f2f] text-[#ece8df]'
+                        : 'text-[#8f95a3] hover:bg-[#1c1c1c]',
+                      'flex h-full place-content-center items-center rounded-md px-4 py-2'
+                    )}
+                  >
+                    <tab.icon
+                      className={classNames(
+                        tab.key === selectedTab
+                          ? 'text-[#ece8df]'
+                          : 'text-[#8f95a3]',
+                        'h-5 w-5 pr-1'
+                      )}
+                    />
                     <span
                       className={
-                        tab.key === selectedTab ? 'text-dark-white' : 'text-gray-400'
+                        tab.key === selectedTab
+                          ? 'text-[#ece8df]'
+                          : 'text-[#8f95a3]'
                       }
                     >
                       {tab.name}

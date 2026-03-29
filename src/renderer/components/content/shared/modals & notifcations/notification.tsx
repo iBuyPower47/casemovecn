@@ -19,7 +19,7 @@ export default function NotificationElement({
       {/* Global notification live region, render this permanently at the end of the document */}
       <div
         aria-live="assertive"
-        className="fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6 sm:items-start"
+        className="fixed inset-0 z-[100] flex items-end px-4 py-6 pointer-events-none sm:items-start sm:p-6"
       >
         <div className={classNames(settingsData.os == 'win32' ? 'pt-7' : '', "w-full flex flex-col items-center space-y-4 sm:items-end")}>
           {/* Notification panel, dynamically insert this into the live region when it needs to be displayed */}
@@ -33,38 +33,38 @@ export default function NotificationElement({
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="max-w-sm dark:bg-dark-level-four w-full bg-white shadow-lg rounded-lg pointer-events-auto mt-0 lg:mt-0 md:mt-12 ring-1 ring-black ring-opacity-5 overflow-hidden">
+            <div className="max-w-sm foil-border noise-texture w-full shadow-modal-foil rounded-lg pointer-events-auto mt-0 lg:mt-0 md:mt-12 overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start">
-                  <div className="shrink-0">
+                  <div className="flex-shrink-0">
                     {success ? (
                       <CheckCircleIcon
-                        className="h-6 w-6 text-green-400"
+                        className="h-6 w-6 text-[var(--success)]"
                         aria-hidden="true"
                       />
                     ) : (
                       <XCircleIcon
-                        className="h-6 w-6 text-red-400"
+                        className="h-6 w-6 text-[var(--error)]"
                         aria-hidden="true"
                       />
                     )}
                   </div>
                   <div className="ml-3 w-0 flex-1 pt-0.5">
-                    <p className="text-sm  dark:text-dark-white font-medium text-gray-900">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
                       {titleToDisplay}
                     </p>
-                    <p className="mt-1 text-sm dark:text-gray-400 text-gray-500">
+                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
                       {textToDisplay}
                     </p>
                   </div>
-                  <div className="ml-4 shrink-0 flex">
+                  <div className="ml-4 flex-shrink-0 flex">
                     <button
-                      className="bg-white dark:bg-dark-level-four rounded-md inline-flex text-gray-400 hover:text-gray-500"
+                      className="bg-transparent rounded-md inline-flex text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors duration-150"
                       onClick={() => {
                         setShow(false);
                       }}
                     >
-                      <span className="sr-only">Close</span>
+                      <span className="sr-only">关闭</span>
                       <XIcon className="h-5 w-5" aria-hidden="true" />
                     </button>
                   </div>

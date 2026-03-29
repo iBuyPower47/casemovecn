@@ -4,78 +4,77 @@ import {
   ArchiveIcon,
   CollectionIcon,
   DatabaseIcon,
-  DownloadIcon,
   PresentationChartBarIcon,
   PresentationChartLineIcon,
   TagIcon,
 } from '@heroicons/react/solid';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  HashRouter as Router,
-  Route,
-  Routes
-} from 'react-router-dom';
-import { ReducerManager } from '../../../renderer/functionsClasses/reducerManager';
-import { State } from '../../../renderer/interfaces/states';
-import { ConvertPrices, RequestPrices } from '../../../renderer/functionsClasses/prices';
-import { downloadReport } from '../../../renderer/functionsClasses/downloadReport';
-import { LoadButton } from '../../../renderer/components/content/loadStorageUnitsButton';
+import { ReducerManager } from 'renderer/functionsClasses/reducerManager';
+import { State } from 'renderer/interfaces/states';
+import { ConvertPrices, RequestPrices } from 'renderer/functionsClasses/prices';
+import { LoadButton } from 'renderer/components/content/loadStorageUnitsButton';
+import { Card } from 'renderer/components/ui';
 import ListBoxOptions from './overviewOptionsDropdown';
-import { OverviewLeftCharts, OverviewRightCharts, OveviewBy } from '../../../renderer/variables/overviewOptions';
+import {
+  OverviewLeftCharts,
+  OverviewRightCharts,
+  OveviewBy,
+} from 'renderer/variables/overviewOptions';
 import RightGraph from './rightGraph';
 import LeftGraph from './leftGraph';
-
-
 
 function Content() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   let ReducerClass = new ReducerManager(useSelector);
   let currentState: State = ReducerClass.getStorage();
-  const userDetails = currentState.authReducer
-  const settingsData = currentState.settingsReducer
-  const inventory = currentState.inventoryReducer
+  const userDetails = currentState.authReducer;
+  const settingsData = currentState.settingsReducer;
+  const inventory = currentState.inventoryReducer;
   let hr = new Date().getHours();
-  let goodMessage: string = 'Good Evening';
+  let goodMessage: string = '晚上好';
 
   if (hr >= 4 && hr < 12) {
-    goodMessage = 'Good morning';
+    goodMessage = '早上好';
   } else if (hr == 12) {
-    goodMessage = 'Good noon';
+    goodMessage = '中午好';
   } else if (hr >= 12 && hr <= 17) {
-    goodMessage = 'Good afternoon';
+    goodMessage = '下午好';
   } else if (hr >= 0 && hr <= 3) {
-    goodMessage = 'Wassup';
+    goodMessage = '夜深了';
   }
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
-
-  let PricingRequest = new RequestPrices(dispatch, settingsData, currentState.pricingReducer)
-  PricingRequest.handleRequestArray(currentState.inventoryReducer.inventory)
-
-
+  let PricingRequest = new RequestPrices(
+    dispatch,
+    settingsData,
+    currentState.pricingReducer
+  );
+  PricingRequest.handleRequestArray(currentState.inventoryReducer.inventory);
 
   // Inventory prices
-  const PricingClass = new ConvertPrices(settingsData, currentState.pricingReducer)
-  let inventoryValue = 0
-  inventory.combinedInventory.forEach(element => {
-    const itemPrice = PricingClass.getPrice(element)
-    if (!isNaN(itemPrice)) {
-      inventoryValue += itemPrice * element.combined_QTY
+  const PricingClass = new ConvertPrices(
+    settingsData,
+    currentState.pricingReducer
+  );
+  let inventoryValue = 0;
+  inventory.combinedInventory.forEach((element) => {
+    const itemPrice = PricingClass.getPrice(element);
+    if (itemPrice !== undefined && !isNaN(itemPrice)) {
+      inventoryValue += itemPrice * element.combined_QTY;
     }
   });
 
-  let storageUnitsValue = 0
-  inventory.storageInventory.forEach(element => {
-    const itemPrice = PricingClass.getPrice(element)
-    if (!isNaN(itemPrice)) {
-      storageUnitsValue += itemPrice * element.combined_QTY
+  let storageUnitsValue = 0;
+  inventory.storageInventory.forEach((element) => {
+    const itemPrice = PricingClass.getPrice(element);
+    if (itemPrice !== undefined && !isNaN(itemPrice)) {
+      storageUnitsValue += itemPrice * element.combined_QTY;
     }
   });
-
 
   return (
     <>
-      <div className="h-screen bg-dark-level-one">
+      <div className="h-screen bg-[var(--bg-level-one)]">
         <Transition.Root show={sidebarOpen} as={Fragment}>
           <Dialog
             as="div"
@@ -91,7 +90,7 @@ function Content() {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <div className="fixed inset-0 bg-gray-600 bg-opacity-75" />
+              <div className="fixed inset-0 bg-black/80" />
             </Transition.Child>
 
             <div className="fixed inset-0 flex z-40">
@@ -104,7 +103,7 @@ function Content() {
                 leaveFrom="translate-x-0"
                 leaveTo="-translate-x-full"
               ></Transition.Child>
-              <div className="shrink-0 w-14" aria-hidden="true">
+              <div className="flex-shrink-0 w-14" aria-hidden="true">
                 {/* Dummy element to force sidebar to shrink to fit close icon */}
               </div>
             </div>
@@ -112,9 +111,9 @@ function Content() {
         </Transition.Root>
 
         <div className="">
-          <main className="flex-1 pb-8 bg-dark-level-one">
+          <main className="flex-1 pb-8 bg-[var(--bg-level-one)]">
             {/* Page header */}
-            <div className="bg-dark-level-one shadow border-opacity-50 border-b border-gray-200">
+            <div className="bg-[var(--bg-level-one)] border-b border-[var(--border-default)]">
               <div className="px-4 sm:px-6 lg:max-w-6xl lg:mx-auto lg:px-8">
                 <div className="py-6 md:flex md:items-center md:justify-between">
                   <div className="flex-1 min-w-0">
@@ -132,190 +131,189 @@ function Content() {
                             src={userDetails.userProfilePicture as string}
                             alt=""
                           />
-                          <h1 className="ml-3 text-2xl font-bold leading-7  text-dark-white sm:leading-9 sm:truncate">
+                          <h1 className="ml-3 text-2xl font-bold leading-7 text-[var(--text-primary)] sm:leading-9 sm:truncate">
                             {goodMessage}, {userDetails.displayName}.
                           </h1>
                         </div>
                         <dl className="mt-6 flex flex-col sm:ml-3 sm:mt-1 sm:flex-row sm:flex-wrap">
-                          <dd className="mt-3 flex items-center mb-2 text-sm text-gray-500 font-medium sm:mr-6 sm:mt-0 capitalize text-dark-white">
-                          <TagIcon
-                              className="shrink-0 mr-1.5 h-5 w- text-gray-400"
+                          <dd className="mt-3 flex items-center mb-2 text-sm text-[var(--text-secondary)] font-medium sm:mr-6 sm:mt-0 capitalize">
+                            <TagIcon
+                              className="flex-shrink-0 mr-1.5 h-5 w- text-[var(--text-tertiary)]"
                               aria-hidden="true"
                             />
 
-                            <ListBoxOptions optionsObject={OveviewBy} keyToUse={'by'} />
+                            <ListBoxOptions
+                              optionsObject={OveviewBy}
+                              keyToUse={'by'}
+                            />
                           </dd>
-                          <dd className="flex mb-2 items-center text-sm text-gray-500 font-medium capitalize sm:mr-6 text-dark-white">
+                          <dd className="flex mb-2 items-center text-sm text-[var(--text-secondary)] font-medium capitalize sm:mr-6">
                             <PresentationChartBarIcon
-                              className="shrink-0 mr-1.5 h-5 w- text-gray-400"
+                              className="flex-shrink-0 mr-1.5 h-5 w- text-[var(--text-tertiary)]"
                               aria-hidden="true"
                             />
-                            <ListBoxOptions optionsObject={OverviewLeftCharts} keyToUse={'chartleft'} />
+                            <ListBoxOptions
+                              optionsObject={OverviewLeftCharts}
+                              keyToUse={'chartleft'}
+                            />
                           </dd>
-                          <dd className="flex mb-2 items-center text-sm text-gray-500 font-medium capitalize sm:mr-3 text-dark-white">
+                          <dd className="flex mb-2 items-center text-sm text-[var(--text-secondary)] font-medium capitalize sm:mr-3">
                             <PresentationChartLineIcon
-                              className="shrink-0 mr-1.5 h-5 w-5  text-gray-400"
+                              className="flex-shrink-0 mr-1.5 h-5 w-5 text-[var(--text-tertiary)]"
                               aria-hidden="true"
                             />
-                            <ListBoxOptions optionsObject={OverviewRightCharts} keyToUse={'chartRight'} />
+                            <ListBoxOptions
+                              optionsObject={OverviewRightCharts}
+                              keyToUse={'chartRight'}
+                            />
                           </dd>
-                          <dt className="sr-only">Account status</dt>
+                          <dt className="sr-only">账户状态</dt>
                         </dl>
                       </div>
                     </div>
                   </div>
                   <div className="mt-6 flex space-x-3 md:mt-0 md:ml-4">
-                    <button
-                      onClick={() => downloadReport(settingsData, currentState.pricingReducer, [...inventory.combinedInventory, ...inventory.storageInventory])}
-                      className="inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-md text-dark-white bg-dark-level-three hover:bg-dark-level-four"
-                    >
-                      {' '}
-                      <DownloadIcon
-                        className="shrink-0 mr-1.5 h-5 w-5 text-dark-white"
-                        aria-hidden="true"
-                      />
-                      Download all
-                    </button>
-
                     <LoadButton />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 bg-dark-level-one">
+            <div className="mt-8 bg-[var(--bg-level-one)]">
               <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {/* Card */}
-                  <div
-                    key="all card"
-                    className="bg-dark-level-three overflow-hidden shadow"
+                  {/* Card — Total (featured foil) */}
+                  <Card
+                    level="foil"
+                    interactive
+                    className="noise-texture overflow-hidden"
                   >
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="shrink-0">
-                          <DatabaseIcon
-                            className="h-6 w-6 text-gray-400"
-                            aria-hidden="true"
-                          />
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-dark-white truncate">
-                              Total
-                            </dt>
-                            <dd>
-                              <div className="text-lg font-medium text-green-500">
-                                {new Intl.NumberFormat(settingsData.locale, {
-                                  style: 'currency',
-                                  currency: settingsData.currency,
-                                  maximumFractionDigits: 0,
-                                }).format(inventoryValue + storageUnitsValue)}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                /{' '}
-                                {new Intl.NumberFormat('en-US').format(
-                                  inventory.totalAccountItems
-                                )}{' '}
-                                Items
-                              </div>
-                            </dd>
-                          </dl>
-                        </div>
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <DatabaseIcon
+                          className="h-6 w-6 text-[var(--text-tertiary)]"
+                          aria-hidden="true"
+                        />
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-[var(--text-secondary)] truncate">
+                            总计
+                          </dt>
+                          <dd>
+                            <div className="text-lg font-medium text-[var(--success)]">
+                              {new Intl.NumberFormat(settingsData.locale, {
+                                style: 'currency',
+                                currency: settingsData.currency,
+                                maximumFractionDigits: 0,
+                              }).format(inventoryValue + storageUnitsValue)}
+                            </div>
+                            <div className="text-sm text-[var(--text-tertiary)]">
+                              /{' '}
+                              {new Intl.NumberFormat('en-US').format(
+                                inventory.totalAccountItems
+                              )}{' '}
+                              件物品
+                            </div>
+                          </dd>
+                        </dl>
                       </div>
                     </div>
-                  </div>
-                  <div
-                    key="Storage Units"
-                    className="bg-dark-level-three overflow-hidden shadow"
+                  </Card>
+                  <Card
+                    level="two"
+                    interactive
+                    className="noise-texture overflow-hidden"
                   >
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="shrink-0">
-                          <CollectionIcon
-                            className="h-6 w-6 text-gray-400"
-                            aria-hidden="true"
-                          />
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-dark-white truncate">
-                              Storage Units
-                            </dt>
-                            <dd>
-                              <div className="text-lg font-medium text-green-500">
-                                {new Intl.NumberFormat(settingsData.locale, {
-                                  style: 'currency',
-                                  currency: settingsData.currency,
-                                  maximumFractionDigits: 0,
-                                }).format(storageUnitsValue)}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                /{' '}
-                                {new Intl.NumberFormat('en-US').format(
-                                  inventory.totalAccountItems -
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <CollectionIcon
+                          className="h-6 w-6 text-[var(--text-tertiary)]"
+                          aria-hidden="true"
+                        />
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-[var(--text-secondary)] truncate">
+                            存储单元
+                          </dt>
+                          <dd>
+                            <div className="text-lg font-medium text-[var(--success)]">
+                              {new Intl.NumberFormat(settingsData.locale, {
+                                style: 'currency',
+                                currency: settingsData.currency,
+                                maximumFractionDigits: 0,
+                              }).format(storageUnitsValue)}
+                            </div>
+                            <div className="text-sm text-[var(--text-tertiary)]">
+                              /{' '}
+                              {new Intl.NumberFormat('en-US').format(
+                                inventory.totalAccountItems -
                                   inventory.inventory.length
-                                )}{' '}
-                                Items
-                              </div>
-                            </dd>
-                          </dl>
-                        </div>
+                              )}{' '}
+                              件物品
+                            </div>
+                          </dd>
+                        </dl>
                       </div>
                     </div>
-                  </div>
-                  <div
-                    key="Inventory items"
-                    className="bg-dark-level-three overflow-hidden shadow"
+                  </Card>
+                  <Card
+                    level="two"
+                    interactive
+                    className="noise-texture overflow-hidden"
                   >
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="shrink-0">
-                          <ArchiveIcon
-                            className="h-6 w-6 text-gray-400"
-                            aria-hidden="true"
-                          />
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-dark-white truncate">
-                              Inventory
-                            </dt>
-                            <dd>
-                              <div className="text-lg font-medium text-green-500">
-                                {new Intl.NumberFormat(settingsData.locale, {
-                                  style: 'currency',
-                                  currency: settingsData.currency,
-                                  maximumFractionDigits: 0,
-                                }).format(inventoryValue)}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                /{' '}
-                                {new Intl.NumberFormat('en-US').format(
-                                  inventory.inventory.length
-                                )}{' '}
-                                Items
-                              </div>
-                            </dd>
-                          </dl>
-                        </div>
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <ArchiveIcon
+                          className="h-6 w-6 text-[var(--text-tertiary)]"
+                          aria-hidden="true"
+                        />
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-[var(--text-secondary)] truncate">
+                            库存
+                          </dt>
+                          <dd>
+                            <div className="text-lg font-medium text-[var(--success)]">
+                              {new Intl.NumberFormat(settingsData.locale, {
+                                style: 'currency',
+                                currency: settingsData.currency,
+                                maximumFractionDigits: 0,
+                              }).format(inventoryValue)}
+                            </div>
+                            <div className="text-sm text-[var(--text-tertiary)]">
+                              /{' '}
+                              {new Intl.NumberFormat('en-US').format(
+                                inventory.inventory.length
+                              )}{' '}
+                              件物品
+                            </div>
+                          </dd>
+                        </dl>
                       </div>
                     </div>
-                  </div>
+                  </Card>
                 </div>
               </div>
-
 
               {/* Activity table (small breakpoint and up) */}
               <div className="hidden sm:block">
                 <div className="max-w-6xl mx-auto mt-8 px-4 sm:px-6 lg:px-8">
                   <div className="grid grid-rows-3 grid-flow-col gap-4 mt-2">
-                    <div className="align-middle mw-5 pl-5 pr-5 overflow-x-auto row-span-3 overflow-hidden bg-dark-level-three">
+                    <Card
+                      level="three"
+                      className="align-middle mw-5 overflow-x-auto row-span-3 overflow-hidden shadow"
+                    >
                       <LeftGraph />
-                    </div>
-                    <div className="align-middle mw-5 overflow-x-auto row-span-3 pb-5 shadow overflow-hidden bg-dark-level-three">
+                    </Card>
+                    <Card
+                      level="three"
+                      className="align-middle mw-5 overflow-x-auto row-span-3 shadow overflow-hidden"
+                    >
                       <RightGraph />
-                    </div>
+                    </Card>
                   </div>
                 </div>
               </div>
@@ -327,9 +325,5 @@ function Content() {
   );
 }
 export default function App() {
-  return (
-    <Routes>
-      <Route path="*" element={<Content />} />
-    </Routes>
-  );
+  return <Content />;
 }

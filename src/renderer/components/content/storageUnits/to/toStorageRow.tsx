@@ -1,8 +1,9 @@
-import { LightningBoltIcon, XIcon } from '@heroicons/react/solid';
+import { CheckIcon, XIcon } from '@heroicons/react/solid';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RequestPrices } from '../../../../../renderer/functionsClasses/prices';
-import { State } from '../../../../../renderer/interfaces/states';
-import { moveToAddRemove } from '../../../../../renderer/store/actions/moveToActions';
+import { RequestPrices } from 'renderer/functionsClasses/prices';
+import { State } from 'renderer/interfaces/states';
+import { moveToAddRemove } from 'renderer/store/actions/moveToActions';
 import { RowCollections } from '../../Inventory/inventoryRows/collectionsRow';
 import { RowFloat } from '../../Inventory/inventoryRows/floatRow';
 import { RowPrice } from '../../Inventory/inventoryRows/priceRow';
@@ -13,7 +14,7 @@ import { RowStickersPatches } from '../../Inventory/inventoryRows/stickerPatches
 import { RowTradehold } from '../../Inventory/inventoryRows/tradeholdRow';
 import { classNames } from '../../shared/filters/inventoryFunctions';
 
-function content({ projectRow, index }: {projectRow: any, index: number}) {
+function content({ projectRow, index }: { projectRow: any; index: number }) {
   const dispatch = useDispatch();
   const toReducer = useSelector((state: State) => state.moveToReducer);
   const pricesResult = useSelector((state: State) => state.pricingReducer);
@@ -65,31 +66,41 @@ function content({ projectRow, index }: {projectRow: any, index: number}) {
     );
   }
 
-  let PricingClass = new RequestPrices(dispatch, settingsData, pricesResult)
-  PricingClass.handleRequested(projectRow)
+  useEffect(() => {
+    const pricingClass = new RequestPrices(
+      dispatch,
+      settingsData,
+      pricesResult
+    );
+    pricingClass.handleRequested(projectRow);
+  }, [dispatch, pricesResult, projectRow, settingsData]);
 
   const isEmpty =
     toReducer.totalToMove.filter((row) => row[0] == projectRow.item_id)
       .length == 0;
 
-  let totalFieldValue = 0
+  let totalFieldValue = 0;
   if (isEmpty == false) {
     totalFieldValue = toReducer.totalToMove.filter(
       (row) => row[0] == projectRow.item_id
-    )[0][2].length
+    )[0][2].length;
   }
 
   return (
     <>
       <RowProduct itemRow={projectRow} />
-      <RowCollections itemRow={projectRow} settingsData={settingsData}/>
-      <RowPrice itemRow={projectRow} settingsData={settingsData} pricesReducer={pricesResult}/>
-      <RowStickersPatches itemRow={projectRow} settingsData={settingsData}/>
+      <RowCollections itemRow={projectRow} settingsData={settingsData} />
+      <RowPrice
+        itemRow={projectRow}
+        settingsData={settingsData}
+        pricesReducer={pricesResult}
+      />
+      <RowStickersPatches itemRow={projectRow} settingsData={settingsData} />
       <RowFloat itemRow={projectRow} settingsData={settingsData} />
-      <RowRarity itemRow={projectRow} settingsData={settingsData}/>
-      <RowTradehold itemRow={projectRow} settingsData={settingsData}/>
-      <RowQTY itemRow={projectRow}/>
-      <td className="table-cell px-6 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hover:text-gray-200 text-right">
+      <RowRarity itemRow={projectRow} settingsData={settingsData} />
+      <RowTradehold itemRow={projectRow} settingsData={settingsData} />
+      <RowQTY itemRow={projectRow} />
+      <td className="table-cell px-6 py-3 whitespace-nowrap text-sm text-[var(--text-secondary)] text-right">
         <div className="flex justify-center rounded-full drop-shadow-lg">
           <div>
             <input
@@ -106,15 +117,16 @@ function content({ projectRow, index }: {projectRow: any, index: number}) {
               }
               placeholder="0"
               onChange={(e) => returnField(e.target.value)}
-              className=" block w-full border rounded sm:text-sm text-gray-500 text-center border-gray-400 border-gray-400 dark:bg-dark-level-two dark:text-dark-white"
+              className="block w-full border rounded sm:text-sm text-[var(--text-primary)] text-center border-[var(--border-default)] bg-[var(--bg-level-two)]"
             />
           </div>
         </div>
       </td>
-      <td className="table-cell px-6 py-3 text-sm text-gray-500 dark:text-gray-400 font-medium">
-        <div className='flex justify-center'>
+      <td className="table-cell px-6 py-3 text-sm text-[var(--text-secondary)] font-medium">
+        <div className="flex justify-center">
           <button
             onClick={() => returnField(1000)}
+            title="选择"
             id={`fire-${index}`}
             className={classNames(
               1000 -
@@ -125,29 +137,38 @@ function content({ projectRow, index }: {projectRow: any, index: number}) {
                 : ''
             )}
           >
-            <LightningBoltIcon
-              className={classNames(isEmpty ? "h-5 w-5" : 'h-4 w-4', "text-gray-400 dark:text-gray-500 hover:text-yellow-400 dark:hover:text-yellow-400")}
+            <CheckIcon
+              className={classNames(
+                isEmpty ? 'h-5 w-5' : 'h-4 w-4',
+                'text-[var(--text-tertiary)] hover:text-[var(--warning)]'
+              )}
               aria-hidden="true"
             />
           </button>
         </div>
-        <div className='flex justify-center'>
+        <div className="flex justify-center">
           <button
             onClick={() => returnField(0)}
+            title="取消"
             id={`removeX-${index}`}
             className={classNames(isEmpty ? 'pointer-events-none hidden' : '')}
           >
             <XIcon
-              className={classNames(1000 -
-                toReducer.activeStoragesAmount -
-                toReducer.totalItemsToMove ==
-                0 || totalFieldValue == projectRow.combined_QTY ? "h-5 w-5" : 'h-4 w-4', "text-gray-400 dark:text-gray-500 hover:text-red-400 dark:hover:text-red-400  ")}
+              className={classNames(
+                1000 -
+                  toReducer.activeStoragesAmount -
+                  toReducer.totalItemsToMove ==
+                  0 || totalFieldValue == projectRow.combined_QTY
+                  ? 'h-5 w-5'
+                  : 'h-4 w-4',
+                'text-[var(--text-tertiary)] hover:text-[var(--error)]'
+              )}
               aria-hidden="true"
             />
           </button>
         </div>
       </td>
-      <td className="hidden md:px-6 py-3 whitespace-nowrap text-right text-sm font-medium dark:bg-dark-level-one"></td>
+      <td className="hidden md:px-6 py-3 whitespace-nowrap text-right text-sm font-medium"></td>
     </>
   );
 }

@@ -1,6 +1,6 @@
-import { ItemRow } from '../interfaces/items';
-import { Prices, Settings } from '../interfaces/states';
-import { pricing_add_to_requested } from '../store/actions/pricingActions';
+import { ItemRow } from 'renderer/interfaces/items';
+import { Prices, Settings } from 'renderer/interfaces/states';
+import { pricing_add_to_requested } from 'renderer/store/actions/pricingActions';
 
 export class ConvertPrices {
   settingsData: Settings;
@@ -12,20 +12,42 @@ export class ConvertPrices {
   }
 
   _getName(itemRow: ItemRow) {
-    return itemRow.item_name + itemRow.item_wear_name || '';
+    return itemRow.item_name + (itemRow.item_wear_name || '');
   }
 
-  getPrice(itemRow:ItemRow, nanToZero=false) {
-    let itemPrice =
+  getPrice(itemRow: ItemRow, nanToZero: true): number;
+  getPrice(itemRow: ItemRow, nanToZero?: false): number | undefined;
+  getPrice(itemRow: ItemRow, nanToZero = false): number | undefined {
+    let price =
       this.prices.prices[this._getName(itemRow)]?.[
         this.settingsData.source.title
-      ] * this.settingsData.currencyPrice[this.settingsData.currency];
+      ];
 
-    if (nanToZero && isNaN(itemPrice)) {
-      return 0
+    const rate = this.settingsData.currencyPrice[this.settingsData.currency];
+
+    let itemPrice: number | undefined;
+    if (this.settingsData.source.title === 'buff163') {
+      // buff163 价格单位是 CNY
+      if (this.settingsData.currency === 'CNY') {
+        itemPrice = price;
+      } else if (price !== undefined && rate !== undefined) {
+        // CNY → USD → 目标货币：price / CNY汇率 * 目标汇率
+        const cnyRate = this.settingsData.currencyPrice['CNY'];
+        itemPrice = cnyRate ? (price / cnyRate) * rate : undefined;
+      } else {
+        itemPrice = undefined;
+      }
+    } else {
+      // steam 价格单位是 USD，乘以目标货币汇率
+      itemPrice =
+        price !== undefined && rate !== undefined ? price * rate : undefined;
     }
 
-    return itemPrice
+    if (nanToZero && (itemPrice === undefined || isNaN(itemPrice))) {
+      return 0;
+    }
+
+    return itemPrice;
   }
 }
 
@@ -34,7 +56,10 @@ export class ConvertPricesFormatted extends ConvertPrices {
     super(settingsData, prices);
   }
 
-  formatPrice(price: number) {
+  formatPrice(price: number | undefined) {
+    if (price === undefined || !Number.isFinite(price)) {
+      return '';
+    }
     return new Intl.NumberFormat(this.settingsData.locale, {
       style: 'currency',
       currency: this.settingsData.currency,
@@ -46,10 +71,14 @@ export class ConvertPricesFormatted extends ConvertPrices {
   }
   getFormattedPriceCombined(itemRow: ItemRow) {
     let comQty = itemRow?.combined_QTY as number;
+    const price = this.getPrice(itemRow);
+    if (price === undefined || !Number.isFinite(price)) {
+      return '';
+    }
     return new Intl.NumberFormat(this.settingsData.locale, {
       style: 'currency',
       currency: this.settingsData.currency,
-    }).format(comQty * this.getPrice(itemRow));
+    }).format(comQty * price);
   }
 }
 
@@ -78,7 +107,11 @@ export class RequestPrices extends ConvertPrices {
   }
 
   handleRequested(itemRow: ItemRow): void {
-    if (isNaN(this.getPrice(itemRow)) == true && this._checkRequested(itemRow)) {
+    const price = this.getPrice(itemRow);
+    if (
+      (price === undefined || isNaN(price)) &&
+      this._checkRequested(itemRow)
+    ) {
       let rowsToSend = [itemRow];
       requestPrice(rowsToSend);
       dispatchRequested(this.dispatch, rowsToSend);
@@ -86,16 +119,19 @@ export class RequestPrices extends ConvertPrices {
   }
 
   handleRequestArray(itemRows: Array<ItemRow>): void {
-    let rowsToSend = [] as Array<ItemRow>
+    let rowsToSend = [] as Array<ItemRow>;
     itemRows.forEach((itemRow) => {
-      if (isNaN(this.getPrice(itemRow)) == true && this._checkRequested(itemRow)) {
-        rowsToSend.push(itemRow)
+      const price = this.getPrice(itemRow);
+      if (
+        (price === undefined || isNaN(price)) &&
+        this._checkRequested(itemRow)
+      ) {
+        rowsToSend.push(itemRow);
       }
     });
     if (rowsToSend.length > 0) {
       requestPrice(rowsToSend);
       dispatchRequested(this.dispatch, rowsToSend);
-
     }
   }
 }

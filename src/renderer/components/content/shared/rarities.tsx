@@ -1,29 +1,29 @@
 const itemRarities = [
   {
-    value: 'Consumer Grade',
+    value: '消费级',
     bgColorClass: 'bg-blue-200',
     href: '#',
   },
   {
-    value: 'Industrial Grade',
+    value: '工业级',
     bgColorClass: 'bg-blue-400',
     href: '#',
   },
   {
-    value: 'Mil-Spec',
+    value: '军规级',
     bgColorClass: 'bg-blue-600',
     href: '#',
   },
   {
-    value: 'Restricted',
+    value: '受限',
     bgColorClass: 'bg-purple-500',
     href: '#',
   },
   {
-    value: 'Classified',
+    value: '保密',
     bgColorClass: 'bg-pink-500',
     href: '#',
-  }
+  },
 ];
 
 export default itemRarities;

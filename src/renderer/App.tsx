@@ -1,30 +1,38 @@
 import { Dialog, Menu, Transition } from '@headlessui/react';
 import {
   ArchiveIcon,
-  ArrowDownIcon,
-  ArrowUpIcon,
-  BeakerIcon,
   DocumentDownloadIcon,
   MenuAlt1Icon,
   XIcon,
 } from '@heroicons/react/outline';
 import {
   ChartBarIcon,
+  DownloadIcon,
   InboxInIcon,
   RefreshIcon,
   SearchIcon,
   SelectorIcon,
+  UploadIcon,
 } from '@heroicons/react/solid';
-import { Fragment, SetStateAction, useMemo, useState } from 'react';
+import {
+  Fragment,
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Link,
   Navigate,
   Route,
-  BrowserRouter as Router,
+  HashRouter as Router,
   Routes,
   useLocation,
 } from 'react-router-dom';
+import './styles/tailwind.css';
 import InventoryContent from './components/content/Inventory/inventory';
 import { itemCategories } from './components/content/shared/categories';
 import {
@@ -44,7 +52,7 @@ import {
   DispatchIPC,
   DispatchStore,
 } from './functionsClasses/rendererCommands/admin';
-import { Settings, State } from './interfaces/states';
+import { State } from './interfaces/states';
 import {
   inventoryAddCategoryFilter,
   inventoryAddRarityFilter,
@@ -57,35 +65,40 @@ import { handleUserEvent } from './store/handleMessage';
 import LoginPage from './views/login/login';
 import OverviewPage from './views/overview/overview';
 import SettingsPage from './views/settings/settings';
-import TradeupPage from './views/tradeUp/tradeUp';
-import { ItemRow } from './interfaces/items';
-import './index.css'
+
+const GlitterLayer = lazy(() => import('./components/ui/GlitterLayer'));
+
+function resolveThemeRoutePolicy(pathname: string): 'standard' | 'enhanced' {
+  const standardRoutes = ['/inventory', '/transferfrom', '/transferto'];
+  return standardRoutes.some((r) => pathname.startsWith(r))
+    ? 'standard'
+    : 'enhanced';
+}
+
 DocumentDownloadIcon;
 
 //{ name: 'Reports', href: '/reports', icon: DocumentDownloadIcon, current: false }
 const navigation = [
-  { name: 'Overview', href: '/stats', icon: ChartBarIcon, current: false },
+  { name: '总览', href: '/stats', icon: ChartBarIcon, current: false },
   {
-    name: 'Transfer | From',
+    name: '取出 | 从存储组件',
     href: '/transferfrom',
-    icon: ArrowDownIcon,
+    icon: DownloadIcon,
     current: false,
   },
   {
-    name: 'Transfer | To',
+    name: '存入 | 到存储组件',
     href: '/transferto',
-    icon: ArrowUpIcon,
+    icon: UploadIcon,
     current: false,
   },
-  { name: 'Inventory', href: '/inventory', icon: ArchiveIcon, current: false },
-  { name: 'Trade up', href: '/tradeup', icon: BeakerIcon, current: false },
+  { name: '库存', href: '/inventory', icon: ArchiveIcon, current: false },
 ];
 
 function AppContent() {
   SearchIcon;
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const [currentSideMenuOption, setSideMenuOption] = useState(
     location.pathname
   );
@@ -100,22 +113,21 @@ function AppContent() {
 
   // Redux user details
 
-  // Use useSelector directly for each slice to avoid returning the entire state
-  const userDetails = useSelector((state: any) => state.authReducer);
-  const modalData = useSelector((state: any) => state.modalMoveReducer);
-  const settingsData = useSelector((state: any) => state.settingsReducer);
-  const tradeUpData = useSelector((state: any) => state.modalTradeReducer);
-  const inventory = useSelector((state: any) => state.inventoryReducer);
-  const filterDetails = useSelector((state: any) => state.inventoryFiltersReducer);
+  const ReducerClass = new ReducerManager(useSelector);
+  const currentState: State = ReducerClass.getStorage();
+  const userDetails = currentState.authReducer;
+  const modalData = currentState.modalMoveReducer;
+  const settingsData = currentState.settingsReducer;
+  const tradeUpData = currentState.modalTradeReducer;
+  const inventory = currentState.inventoryReducer;
+  const filterDetails = currentState.inventoryFiltersReducer;
+  const latestStateRef = useRef(currentState);
+  const latestSettingsRef = useRef(settingsData);
+  const latestModalRef = useRef(modalData);
 
-  document.documentElement.classList.add('dark');
-  function updateAutomation(itemHref: SetStateAction<string>) {
+  function updateAutomation(itemHref) {
     setSideMenuOption(itemHref);
     setSidebarOpen(false);
-  }
-
-  if (currentSideMenuOption != location.pathname) {
-    setSideMenuOption(location.pathname);
   }
 
   // Log out of session
@@ -123,32 +135,27 @@ function AppContent() {
   const StoreClass = new DispatchStore(dispatch);
   const IPCClass = new DispatchIPC(dispatch);
 
-  async function handleFilterData(
-    combinedInventory: ItemRow[],
-    inventoryFilters: any,
-    pricing: any,
-    settings: any,
-    dispatch: any
-  ) {
+  async function handleFilterData(combinedInventory) {
+    const latestState = latestStateRef.current;
     if (
-      inventoryFilters.inventoryFilter.length > 0 ||
-      inventoryFilters.sortValue != 'Default'
+      latestState.inventoryFiltersReducer.inventoryFilter.length > 0 ||
+      latestState.inventoryFiltersReducer.sortValue != 'Default'
     ) {
       let filteredInv = await filterItemRows(
         combinedInventory,
-        inventoryFilters.inventoryFilter
+        latestState.inventoryFiltersReducer.inventoryFilter
       );
       filteredInv = await sortDataFunction(
-        inventoryFilters.sortValue,
+        latestState.inventoryFiltersReducer.sortValue,
         filteredInv,
-        pricing.prices,
-        settings?.source?.title
+        latestState.pricingReducer.prices,
+        latestState.settingsReducer?.source?.title
       );
 
       dispatch(
         inventorySetFilter(
-          inventoryFilters.inventoryFilter,
-          inventoryFilters.sortValue,
+          latestState.inventoryFiltersReducer.inventoryFilter,
+          latestState.inventoryFiltersReducer.sortValue,
           filteredInv
         )
       );
@@ -168,59 +175,35 @@ function AppContent() {
       StoreClass.run(StoreClass.buildingObject.source);
       StoreClass.run(StoreClass.buildingObject.locale);
       StoreClass.run(StoreClass.buildingObject.steamLoginShow);
+      StoreClass.run(StoreClass.buildingObject.themeMode);
+      StoreClass.run(StoreClass.buildingObject.themeEffects);
+      StoreClass.run(StoreClass.buildingObject.themeCheckpoint);
+      StoreClass.run(StoreClass.buildingObject.themeParticlesEnabled);
     }
   }
 
   // Forward user event to Store
-  const pricing = useSelector((state: any) => state.pricingReducer);
+  async function handleSubMessage(messageValue) {
+    const latestSettings = latestSettingsRef.current;
+    const latestModal = latestModalRef.current;
 
-  if (isListening == false) {
-    setFirstTimeSettings();
-    window.electron.ipcRenderer.userEvents().then((messageValue) => {
-      handleSubMessage(
-        messageValue,
-        settingsData,
-        modalData,
-        filterDetails,
-        pricing,
-        dispatch
-      );
-    });
-
-    setIsListening(true);
-  }
-
-  async function handleSubMessage(
-    messageValue,
-    settingsData,
-    modalData,
-    filterDetails,
-    pricing,
-    dispatch
-  ) {
-    if (settingsData.fastMove && modalData.query.length > 0) {
+    if (latestSettings.fastMove && latestModal.query.length > 0) {
       console.log('Command blocked', modalData.moveOpen, settingsData.fastMove);
-      setIsListening(false);
       return;
     }
     if (messageValue.command == undefined) {
       const actionToTake = (await handleUserEvent(
         messageValue,
-        settingsData
+        latestSettings
       )) as any;
+      if (!actionToTake) {
+        return;
+      }
       dispatch(actionToTake);
       if (messageValue[0] == 1) {
-        await handleFilterData(
-          actionToTake.payload.combinedInventory,
-          filterDetails,
-          pricing,
-          settingsData,
-          dispatch
-        );
+        await handleFilterData(actionToTake.payload.combinedInventory);
       }
     }
-
-    setIsListening(false);
   }
 
   async function logOut() {
@@ -243,25 +226,9 @@ function AppContent() {
     setVersion('v' + doUpdate.currentVersion);
     setShouldUpdate(doUpdate.requireUpdate);
   }
-  if (shouldCheckUpdate == true) {
-    setShouldCheckUpdate(false);
-    getUpdate();
-  }
 
   // Pricing
   const [firstRun, setFirstRun] = useState(false);
-
-  if (firstRun == false) {
-    setFirstRun(true);
-    window.electron.ipcRenderer.on('pricing', (message: any[]) => {
-      console.log(message);
-      dispatch(pricing_addPrice(message[0]));
-    });
-
-    window.electron.ipcRenderer.on('updater', (message: any) => {
-      console.log(message);
-    });
-  }
 
   // Trade up
   async function handleTradeUp() {
@@ -271,9 +238,78 @@ function AppContent() {
       }
     });
   }
-  if (tradeUpData.inventoryFirst.length != 0) {
+
+  const theme = settingsData.theme ?? {
+    mode: 'dark',
+    effects: 'off',
+    checkpoint: 'shell-only',
+    particlesEnabled: false,
+  };
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add('dark');
+    root.dataset.theme = theme.mode;
+    root.dataset.effects = theme.effects;
+  }, [theme.mode, theme.effects]);
+
+  useEffect(() => {
+    setSideMenuOption(location.pathname);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    latestStateRef.current = currentState;
+    latestSettingsRef.current = settingsData;
+    latestModalRef.current = modalData;
+  }, [currentState, modalData, settingsData]);
+
+  useEffect(() => {
+    setFirstTimeSettings();
+
+    const handleUserEvents = (messageValue) => {
+      handleSubMessage(messageValue);
+    };
+
+    window.electron.ipcRenderer.removeAllListeners('userEvents');
+    window.electron.ipcRenderer.on('userEvents', handleUserEvents);
+
+    return () => {
+      window.electron.ipcRenderer.removeAllListeners('userEvents');
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!shouldCheckUpdate) {
+      return;
+    }
+
+    setShouldCheckUpdate(false);
+    getUpdate();
+  }, [shouldCheckUpdate]);
+
+  useEffect(() => {
+    if (firstRun) {
+      return;
+    }
+
+    setFirstRun(true);
+    window.electron.ipcRenderer.on('pricing', (message) => {
+      console.log(message);
+      dispatch(pricing_addPrice(message[0]));
+    });
+
+    window.electron.ipcRenderer.on('updater', (message) => {
+      console.log(message);
+    });
+  }, [dispatch, firstRun]);
+
+  useEffect(() => {
+    if (tradeUpData.inventoryFirst.length === 0) {
+      return;
+    }
+
     handleTradeUp();
-  }
+  }, [dispatch, inventory.inventory, tradeUpData.inventoryFirst]);
 
   return (
     <>
@@ -282,13 +318,25 @@ function AppContent() {
       <div
         className={classNames(
           settingsData.os == 'win32' ? 'pt-7' : '',
-          'min-h-full dark:bg-dark-level-one h-screen'
+          'relative h-screen min-h-0 overflow-hidden bg-[var(--bg-level-one)] text-[var(--text-primary)]'
         )}
       >
+        {theme.mode === 'holo' && theme.effects !== 'off' && (
+          <div className="absolute inset-0 animated-holographic-gradient pointer-events-none" />
+        )}
+        {theme.mode === 'holo' &&
+          theme.effects !== 'off' &&
+          theme.particlesEnabled &&
+          theme.checkpoint === 'shell-cards-particles' &&
+          resolveThemeRoutePolicy(location.pathname) !== 'standard' && (
+            <Suspense fallback={null}>
+              <GlitterLayer />
+            </Suspense>
+          )}
         <Transition.Root show={sidebarOpen} as={Fragment}>
           <Dialog
             as="div"
-            className="fixed inset-0 flex z-40 dark:bg-dark-level-two lg:hidden"
+            className="fixed inset-0 z-40 flex bg-black/80 lg:hidden"
             onClose={setSidebarOpen}
           >
             <Transition.Child
@@ -300,7 +348,7 @@ function AppContent() {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Dialog.Panel className="fixed inset-0 bg-gray-600 bg-opacity-75" />
+              <Dialog.Overlay className="fixed inset-0 bg-black/80" />
             </Transition.Child>
             <Transition.Child
               as={Fragment}
@@ -311,7 +359,7 @@ function AppContent() {
               leaveFrom="translate-x-0"
               leaveTo="-translate-x-full"
             >
-              <div className="relative flex-1 flex flex-col max-w-xs w-full pt-5 pb-4 bg-white">
+              <div className="relative flex w-full max-w-xs flex-1 flex-col border-r border-[var(--border-default)] bg-[var(--bg-level-one)] pt-5 pb-4 text-[var(--text-primary)]">
                 <Transition.Child
                   as={Fragment}
                   enter="ease-in-out duration-300"
@@ -327,7 +375,7 @@ function AppContent() {
                       className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
                       onClick={() => setSidebarOpen(false)}
                     >
-                      <span className="sr-only">Close sidebar</span>
+                      <span className="sr-only">关闭侧边栏</span>
                       <XIcon
                         className="h-6 w-6 text-white"
                         aria-hidden="true"
@@ -338,7 +386,7 @@ function AppContent() {
                 <div
                   className={classNames(
                     settingsData.os == 'win32' ? 'pt-7' : '',
-                    'shrink-0 flex items-center px-4'
+                    'flex-shrink-0 flex items-center px-4'
                   )}
                 >
                   <Logo />
@@ -353,20 +401,20 @@ function AppContent() {
                           to={item.href}
                           className={classNames(
                             currentSideMenuOption.includes(item.href)
-                              ? 'bg-gray-100 text-gray-900'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
+                              ? 'border-l-2 border-[var(--accent-primary)] bg-[var(--bg-level-two)] text-[var(--text-primary)] pl-[6px]'
+                              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-level-two)] hover:text-[var(--text-primary)] border-l-2 border-transparent pl-[6px]',
                             userDetails.isLoggedIn ? '' : 'pointer-events-none',
-                            'group flex items-center px-2 py-2 text-base leading-5 font-medium rounded-md'
+                            'group flex items-center px-2 py-2 text-base leading-5 font-medium rounded-md transition-colors duration-150'
                           )}
                           aria-current={item.current ? 'page' : undefined}
                           onClick={() => updateAutomation(item.href)}
                         >
                           <item.icon
                             className={classNames(
-                              item.current
-                                ? 'text-gray-500'
-                                : 'text-gray-400 group-hover:text-gray-500',
-                              'mr-3 shrink-0 h-6 w-6'
+                              currentSideMenuOption.includes(item.href)
+                                ? 'text-[var(--accent-primary)]'
+                                : 'text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]',
+                              'mr-3 flex-shrink-0 h-6 w-6 transition-colors duration-150'
                             )}
                             aria-hidden="true"
                           />
@@ -376,10 +424,10 @@ function AppContent() {
                     </div>
                     <div className="mt-8">
                       <h3
-                        className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                        className="px-3 text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider"
                         id="mobile-teams-headline"
                       >
-                        Teams
+                        物品分类
                       </h3>
                       <div
                         className="mt-1 space-y-1"
@@ -390,7 +438,7 @@ function AppContent() {
                           <a
                             key={team.name}
                             href={team.href}
-                            className="group flex items-center px-3 py-2 text-base leading-5 font-medium text-gray-600 rounded-md hover:text-gray-900 hover:bg-gray-50"
+                            className="group flex items-center px-3 py-2 text-base leading-5 font-medium text-[var(--text-secondary)] rounded-md hover:text-[var(--text-primary)] hover:bg-[var(--bg-level-two)] transition-colors duration-150"
                           >
                             <span
                               className={classNames(
@@ -408,21 +456,28 @@ function AppContent() {
                 </div>
               </div>
             </Transition.Child>
-            <div className="shrink-0 w-14" aria-hidden="true">
+            <div className="flex-shrink-0 w-14" aria-hidden="true">
               {/* Dummy element to force sidebar to shrink to fit close icon */}
             </div>
           </Dialog>
         </Transition.Root>
 
         {/* Static sidebar for desktop */}
-        <div className="hidden lg:flex lg:flex-col dark:bg-dark-level-two dark:border-opacity-50 lg:w-64 lg:fixed lg:inset-y-0 lg:border-r lg:border-gray-200 lg:pt-5 lg:pb-4 lg:bg-gray-100">
+        <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-[260px] lg:flex-col lg:border-r lg:border-[var(--border-default)] lg:bg-[var(--bg-level-one)] lg:py-5 lg:px-3">
           <div
             className={classNames(
               settingsData.os == 'win32' ? 'pt-7' : '',
-              'flex items-center shrink-0 px-6'
+              'flex items-center gap-[10px] flex-shrink-0 px-3 pb-5'
             )}
           >
-            <Logo />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#FFD700] via-[#A855F7] to-[#38BDF8] shadow-foil">
+              <span className="text-[14px] font-extrabold text-black select-none">
+                C
+              </span>
+            </div>
+            <span className="text-[15px] font-bold tracking-[0.02em]">
+              CaseMoveCn
+            </span>
           </div>
           {/* Sidebar component, swap this element with another sidebar if you like */}
           <div className="mt-6 h-0 flex-1 flex flex-col overflow-y-auto">
@@ -435,12 +490,12 @@ function AppContent() {
               )}
             >
               <div>
-                <Menu.Button className="group w-full bg-gray-100 rounded-md px-3.5 py-2 text-sm text-left font-medium text-gray-700 dark:bg-dark-level-two hover:bg-gray-200 focus:outline-none focus:ring-offset-2 focus:ring-offset-gray-100">
+                <Menu.Button className="group w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-level-two)] px-3.5 py-3 text-left text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-level-three)] hover:border-[var(--border-hover)] transition-colors duration-150 focus:outline-none focus:ring-offset-0">
                   <span className="flex w-full justify-between items-center">
                     <span className="flex min-w-0 items-center justify-between space-x-3">
                       {userDetails.userProfilePicture == null ? (
                         <svg
-                          className="w-10 h-10 rounded-full shrink-0 text-gray-300"
+                          className="w-10 h-10 rounded-full flex-shrink-0 text-[var(--text-tertiary)]"
                           fill="currentColor"
                           viewBox="0 0 24 24"
                         >
@@ -448,33 +503,33 @@ function AppContent() {
                         </svg>
                       ) : (
                         <img
-                          className="w-10 h-10 bg-gray-300 rounded-full shrink-0"
+                          className="w-10 h-10 bg-[var(--bg-level-three)] rounded-full flex-shrink-0"
                           src={userDetails.userProfilePicture}
                           alt=""
                         />
                       )}
 
                       <span className="flex-1 flex flex-col min-w-0">
-                        <span className="text-gray-900 dark:text-dark-white text-sm font-medium truncate">
+                        <span className="text-[var(--text-primary)] text-sm font-medium truncate">
                           {userDetails.displayName}
                         </span>
-                        <span className="text-xs font-medium text-gray-500 group-hover:text-gray-500">
+                        <span className="text-xs font-medium text-[var(--text-tertiary)]">
                           <span
                             className={classNames(
                               userDetails.CSGOConnection
-                                ? 'text-green-400'
-                                : 'text-red-400',
+                                ? 'text-[var(--success)]'
+                                : 'text-[var(--error)]',
                               'text-xs font-medium'
                             )}
                           >
                             <div className="flex justify-between">
                               <div>
                                 {userDetails.CSGOConnection
-                                  ? 'Connected'
-                                  : 'Not connected'}
+                                  ? '已登录'
+                                  : '未登录'}
                               </div>
                             </div>
-                            <div className="text-gray-500">
+                            <div className="text-[var(--text-tertiary)]">
                               {userDetails.walletBalance?.balance == 0 ||
                               userDetails.walletBalance == null
                                 ? ''
@@ -492,7 +547,7 @@ function AppContent() {
                       </span>
                     </span>
                     <SelectorIcon
-                      className="shrink-0 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                      className="flex-shrink-0 h-5 w-5 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]"
                       aria-hidden="true"
                     />
                   </span>
@@ -507,7 +562,7 @@ function AppContent() {
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
               >
-                <Menu.Items className="z-10 mx-3 origin-top absolute right-0 left-0 mt-1 rounded-md shadow-lg bg-white dark:bg-dark-level-four ring-1 ring-black ring-opacity-5 divide-y divide-gray-200 dark:divide-opacity-50 focus:outline-none">
+                <Menu.Items className="z-10 mx-3 origin-top absolute right-0 left-0 mt-1 rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.6)] bg-[var(--bg-level-three)] border border-[var(--border-default)] divide-y divide-[var(--border-default)] focus:outline-none">
                   <div className="py-1">
                     <Menu.Item>
                       {({ active }) => (
@@ -515,12 +570,12 @@ function AppContent() {
                           to="/settings"
                           className={classNames(
                             active
-                              ? 'bg-gray-100 text-gray-900 dark:bg-dark-level-three dark:text-dark-white'
-                              : 'text-gray-700 dark:text-dark-white',
-                            'block px-4 py-2 text-sm'
+                              ? 'bg-[var(--bg-level-four)] text-[var(--text-primary)]'
+                              : 'text-[var(--text-secondary)]',
+                            'block px-4 py-2 text-sm transition-colors duration-100'
                           )}
                         >
-                          Settings
+                          设置
                         </Link>
                       )}
                     </Menu.Item>
@@ -533,12 +588,12 @@ function AppContent() {
                           onClick={() => logOut()}
                           className={classNames(
                             active
-                              ? 'bg-gray-100 text-gray-900 dark:bg-dark-level-three dark:text-dark-white'
-                              : 'text-gray-700 dark:text-dark-white',
-                            'block px-4 py-2 text-sm'
+                              ? 'bg-[var(--bg-level-four)] text-[var(--text-primary)]'
+                              : 'text-[var(--text-secondary)]',
+                            'block px-4 py-2 text-sm transition-colors duration-100'
                           )}
                         >
-                          Logout
+                          退出登录
                         </Link>
                       )}
                     </Menu.Item>
@@ -548,45 +603,47 @@ function AppContent() {
             </Menu>
 
             <div className={shouldUpdate ? 'px-3 mt-5' : 'px-3 mt-5 '}>
-              {userDetails.CSGOConnection == false &&
-              userDetails.isLoggedIn == true ? (
+              {!userDetails.CSGOConnection && userDetails.isLoggedIn ? (
                 <button
                   type="button"
                   onClick={() => retryConnection()}
-                  className="inline-flex items-center bg-green-200 px-6 shadow-md py-3 text-left text-base w-full font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:shadow-none focus:outline-none pl-9 sm:text-sm border-gray-300 rounded-md h-9 text-gray-400"
+                  className="inline-flex items-center px-4 py-2 text-left text-sm w-full font-medium rounded-md bg-[var(--bg-level-two)] hover:bg-[var(--bg-level-three)] border border-[var(--border-default)] focus:outline-none h-9 text-[var(--text-secondary)]"
                 >
                   <RefreshIcon
-                    className="mr-3 h-4 w-4 text-green-900"
+                    className="mr-3 h-4 w-4 text-[var(--success)]"
                     style={{ marginLeft: -25 }}
                     aria-hidden="true"
                   />
-                  <span className="mr-3 text-green-900">Retry connection</span>
+                  <span className="mr-3 text-[var(--success)]">重新连接</span>
                 </button>
               ) : shouldUpdate ? (
                 <button
                   type="button"
                   disabled={true}
-                  className="inline-flex items-center my-4 bg-green-200 px-6 shadow-md py-3 text-left text-base w-full font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:shadow-none focus:outline-none pl-9 sm:text-sm border-gray-300 rounded-md h-9 text-gray-400"
+                  className="inline-flex items-center my-4 px-4 py-2 text-left text-sm w-full font-medium rounded-md bg-[var(--bg-level-two)] border border-[var(--border-default)] focus:outline-none h-9 text-[var(--text-secondary)]"
                 >
                   <InboxInIcon
-                    className="mr-3 h-4 w-4 text-gray-500"
+                    className="mr-3 h-4 w-4 text-[var(--text-secondary)]"
                     style={{ marginLeft: -22 }}
                     aria-hidden="true"
                   />
                   <span className="mr-3 ">
-                    Update ready. <br />
-                    Restart or download.
+                    有新版本可用 <br />
+                    请重启或下载更新
                   </span>
                 </button>
               ) : (
-                <div className='flex flex-col gap-3'>
-                  <a href="https://discord.gg/n8QExYF7Qs" target="_blank">
+                <div className="flex flex-col gap-3">
+                  <a
+                    href="https://qm.qq.com/cgi-bin/qm/qr?k=10ly-zqW9ABP9IKwI2Esc8OzSMiaG5YB&jump_from=webapi&authKey=oSbIQGXl4NK3n9rSdzgtAHvsAyQXD06QNri3dsSYRYEQhMiiAPK1BAsK7WD2iunm"
+                    target="_blank"
+                  >
                     <button
                       type="button"
-                      className="flex  dark:text-dark-white items-center px-6 py-3 border border-gray-200 dark:bg-dark-level-three   dark:border-opacity-0  text-left text-base w-full font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none pl-9 sm:text-sm border-gray-300 rounded-md h-9 text-gray-400"
+                      className="flex items-center px-4 py-2 border border-[var(--border-default)] bg-[var(--bg-level-two)] text-left text-sm w-full font-medium rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-level-three)] focus:outline-none h-9"
                     >
                       <div
-                        className="mr-3  h-4 w-4 text-gray-500"
+                        className="mr-3 h-4 w-4 text-[var(--text-secondary)]"
                         aria-hidden="true"
                       >
                         <svg
@@ -607,23 +664,15 @@ function AppContent() {
                           </g>
                         </svg>
                       </div>
-                      <span className="mr-3">Join the discord</span>
+                      <span className="mr-3">加入 QQ 群</span>
                     </button>
                   </a>
-                  {/* <a href="https://skinledger.com" target="_blank">
-                    <button
-                      type="button"
-                      className="text-white bg-linear-to-r w-full from-green-500 via-green-700 to-green-800 shadow-sm hover:opacity-80 hover:bg-linear-to-br focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2"
-                    >
-                      <span className="mr-3">Join the Skinledger beta</span>
-                    </button>
-                  </a> */}
                 </div>
               )}
             </div>
 
             {/* Navigation */}
-            <nav className="px-3 mt-5">
+            <nav className="mt-5">
               <div className="space-y-1">
                 {navigation.map((item) => (
                   <Link
@@ -631,10 +680,10 @@ function AppContent() {
                     to={item.href}
                     className={classNames(
                       currentSideMenuOption.includes(item.href)
-                        ? 'bg-gray-100 text-gray-900 dark:bg-opacity-10 dark:text-opacity-60'
-                        : 'text-gray-600 dark:text-gray-200 hover:text-gray-900 hover:bg-gray-50 dark:bg-opacity-10 dark:hover:text-opacity-60 ',
+                        ? 'foil-active-bar bg-[var(--bg-level-three)] text-[var(--text-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-level-three)] hover:text-[var(--text-primary)]',
                       userDetails.isLoggedIn ? '' : 'pointer-events-none',
-                      'group flex items-center px-2 py-2 dark:text-dark-white text-base leading-5 font-medium rounded-md'
+                      'group flex items-center gap-[10px] px-3 py-[9px] text-[13.5px] font-medium rounded-[7px] transition-colors duration-150'
                     )}
                     aria-current={item.current ? 'page' : undefined}
                     onClick={() => updateAutomation(item.href)}
@@ -642,9 +691,9 @@ function AppContent() {
                     <item.icon
                       className={classNames(
                         currentSideMenuOption.includes(item.href)
-                          ? 'text-gray-500 dark:text-opacity-60'
-                          : 'text-gray-400 group-hover:text-gray-500',
-                        'mr-3 shrink-0 h-6 w-6  dark:text-dark-white'
+                          ? 'opacity-100'
+                          : 'opacity-70 group-hover:opacity-100',
+                        'flex-shrink-0 h-[18px] w-[18px] transition-opacity duration-150'
                       )}
                       aria-hidden="true"
                     />
@@ -653,13 +702,13 @@ function AppContent() {
                 ))}
               </div>
               {!currentSideMenuOption.includes('/tradeup') ? (
-                <div className="mt-8">
+                <div className="mt-6">
                   {/* Secondary navigation */}
                   <h3
-                    className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                    className="px-3 py-[6px] text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.10em]"
                     id="desktop-teams-headline"
                   >
-                    Storage categories
+                    物品分类
                   </h3>
                   <div
                     className="mt-1 space-y-1"
@@ -668,11 +717,12 @@ function AppContent() {
                   >
                     {itemCategories.map((team) => (
                       <div
+                        key={team.name}
                         className={classNames(
                           filterDetails.categoryFilter?.includes(
                             team.bgColorClass
                           )
-                            ? 'bg-gray-200 dark:bg-dark-level-three'
+                            ? 'bg-[var(--bg-level-two)]'
                             : '',
                           'w-full'
                         )}
@@ -688,7 +738,7 @@ function AppContent() {
                             userDetails.isLoggedIn == false
                               ? 'pointer-events-none'
                               : '',
-                            'group flex items-center px-3 py-2 dark:text-dark-white text-sm font-medium text-gray-700 rounded-md'
+                            'group flex items-center px-3 py-2 text-sm font-medium text-[var(--text-secondary)] rounded-md hover:text-[var(--text-primary)] transition-colors duration-150'
                           )}
                         >
                           <span
@@ -708,10 +758,10 @@ function AppContent() {
                 <div className="mt-8">
                   {/* Secondary navigation */}
                   <h3
-                    className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                    className="px-3 text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider"
                     id="desktop-teams-headline"
                   >
-                    RARITY
+                    稀有度
                   </h3>
                   <div
                     className="mt-1 space-y-1"
@@ -720,11 +770,12 @@ function AppContent() {
                   >
                     {itemRarities.map((rarity) => (
                       <div
+                        key={rarity.value}
                         className={classNames(
                           filterDetails.rarityFilter?.includes(
                             rarity.bgColorClass
                           )
-                            ? 'bg-gray-200 dark:bg-dark-level-three'
+                            ? 'bg-[var(--bg-level-two)]'
                             : '',
                           'w-full'
                         )}
@@ -740,7 +791,7 @@ function AppContent() {
                             userDetails.isLoggedIn == false
                               ? 'pointer-events-none'
                               : '',
-                            'group flex items-center px-3 py-2 dark:text-dark-white text-sm font-medium text-gray-700 rounded-md'
+                            'group flex items-center px-3 py-2 text-sm font-medium text-[var(--text-secondary)] rounded-md hover:text-[var(--text-primary)] transition-colors duration-150'
                           )}
                         >
                           <span
@@ -760,10 +811,12 @@ function AppContent() {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs pl-4 text-gray-500">{getVersion}</span>
+            <span className="text-xs pl-4 text-[var(--text-tertiary)]">
+              {getVersion}
+            </span>
             <a
-              className="flex items-center text-xs gap-2 text-dark-white hover:scale-110 transform duration-200"
-              href="https://discord.gg/n8QExYF7Qs"
+              className="flex items-center text-xs gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150"
+              href="https://github.com/iBuyPower47/casemovecn"
               target="_blank"
             >
               <svg
@@ -777,67 +830,47 @@ function AppContent() {
                       d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"
                       data-name="Discord Logo - Large - White"
                       style={{
-                        fill: '#d6d3cd',
+                        fill: 'var(--text-primary)',
                       }}
                     />
                   </g>
                 </g>
               </svg>
-              Support
+              帮助与支持
             </a>
           </div>
         </div>
         {/* Main column */}
-        <div className="lg:pl-64 flex flex-col">
+        <div className="flex min-h-0 flex-col lg:pl-[260px]">
           {/* Search header */}
-          <div className="sticky top-0 z-10 shrink-0 flex h-16 bg-white border-b border-gray-200 lg:hidden dark:bg-dark-level-two">
+          <div className="sticky top-0 z-10 flex h-16 flex-shrink-0 border-b border-[var(--border-default)] bg-[var(--bg-level-one)] lg:hidden">
             <button
               type="button"
-              className="px-4 border-r border-gray-200 text-gray-500 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-inset lg:hidden"
+              className="px-4 border-r border-[var(--border-default)] text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--accent-primary)] lg:hidden"
               onClick={() => setSidebarOpen(true)}
             >
-              <span className="sr-only">Open sidebar</span>
+              <span className="sr-only">打开侧边栏</span>
               <MenuAlt1Icon className="h-6 w-6" aria-hidden="true" />
             </button>
             <div className="flex-1 flex justify-between px-4 sm:px-6 lg:px-8">
               <div className="flex-1 items-center justify-end flex">
                 <div className="px-3">
-                  {userDetails.CSGOConnection == false &&
-                  userDetails.isLoggedIn == true ? (
+                  {!userDetails.CSGOConnection && userDetails.isLoggedIn ? (
                     <button
                       type="button"
                       onClick={() => retryConnection()}
-                      className="inline-flex items-center bg-green-200 px-6 shadow-md py-3 text-left text-base w-full font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none pl-9 sm:text-sm border-gray-300 rounded-md h-9 text-gray-400"
+                      className="inline-flex items-center px-4 py-2 text-left text-sm w-full font-medium rounded-md bg-[var(--bg-level-two)] hover:bg-[var(--bg-level-three)] border border-[var(--border-default)] focus:outline-none h-9 text-[var(--text-secondary)]"
                     >
                       <RefreshIcon
-                        className="mr-3 h-4 w-4 text-green-900 "
+                        className="mr-3 h-4 w-4 text-[var(--success)]"
                         style={{ marginLeft: -25 }}
                         aria-hidden="true"
                       />
-                      <span className="mr-3 text-green-900">
-                        Retry connection
+                      <span className="mr-3 text-[var(--success)]">
+                        重新连接
                       </span>
                     </button>
-                  ) : shouldUpdate == false ? (
-                    <a
-                      href="https://steamcommunity.com/tradeoffer/new/?partner=1033744096&token=29ggoJY7"
-                      target="_blank"
-                    >
-                      <button
-                        type="button"
-                        className="inline-flex items-center px-6 py-3 border border-gray-200 text-left text-base w-full font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none pl-9 sm:text-sm border-gray-300 rounded-md h-9 text-gray-400"
-                      >
-                        <InboxInIcon
-                          className="mr-3 h-4 w-4 text-gray-500"
-                          style={{ marginLeft: -22 }}
-                          aria-hidden="true"
-                        />
-                        <span className="mr-3">Update ready</span>
-                      </button>
-                    </a>
-                  ) : (
-                    ''
-                  )}
+                  ) : ("")}
                 </div>
               </div>
               <div className="flex items-center">
@@ -850,11 +883,11 @@ function AppContent() {
                   )}
                 >
                   <div>
-                    <Menu.Button className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2">
-                      <span className="sr-only">Open user menu</span>
+                    <Menu.Button className="max-w-xs flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-primary)]">
+                      <span className="sr-only">打开用户菜单</span>
                       {userDetails.userProfilePicture == null ? (
                         <svg
-                          className="w-10 h-10 rounded-full shrink-0 text-gray-300"
+                          className="w-10 h-10 rounded-full flex-shrink-0 text-[var(--text-tertiary)]"
                           fill="currentColor"
                           viewBox="0 0 24 24"
                         >
@@ -864,9 +897,9 @@ function AppContent() {
                         <img
                           className={classNames(
                             userDetails.CSGOConnection
-                              ? 'border-2 border-solid border-green-400'
-                              : 'border-4 border-solid border-red-400',
-                            'w-10 h-10 bg-gray-300 rounded-full shrink-0'
+                              ? 'border-2 border-solid border-[var(--success)]'
+                              : 'border-4 border-solid border-[var(--error)]',
+                            'w-10 h-10 bg-[var(--bg-level-three)] rounded-full flex-shrink-0'
                           )}
                           src={userDetails.userProfilePicture}
                           alt=""
@@ -883,7 +916,7 @@ function AppContent() {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                   >
-                    <Menu.Items className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-200 focus:outline-none">
+                    <Menu.Items className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.6)] bg-[var(--bg-level-three)] border border-[var(--border-default)] divide-y divide-[var(--border-default)] focus:outline-none">
                       <div className="py-1">
                         <Menu.Item>
                           {({ active }) => (
@@ -892,12 +925,12 @@ function AppContent() {
                               onClick={() => logOut()}
                               className={classNames(
                                 active
-                                  ? 'bg-gray-100 text-gray-900'
-                                  : 'text-gray-700',
+                                  ? 'bg-[var(--bg-level-four)] text-[var(--text-primary)]'
+                                  : 'text-[var(--text-secondary)]',
                                 'block px-4 py-2 text-sm'
                               )}
                             >
-                              Logout
+                              退出登录
                             </Link>
                           )}
                         </Menu.Item>
@@ -908,33 +941,88 @@ function AppContent() {
               </div>
             </div>
           </div>
-          <main className="flex-1 dark:bg-dark-level-one">
-          <toMoveContext.Provider value={toMoveValue}>
+          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-transparent">
+            <toMoveContext.Provider value={toMoveValue}>
               <Routes>
-              <Route path="/signin/*" element={<LoginPage />} />
-              <Route
-                path="/stats/*"
-                element={
-                  userDetails.isLoggedIn ? <OverviewPage /> : <Navigate to="/signin" />
-                }
-              />
-              <Route
-                path="/transferfrom/*"
-                element={
-                  userDetails.isLoggedIn ? (
-                    <StorageUnitsComponent />
-                  ) : (
-                    <Navigate to="/signin" />
-                  )
-                }
-              />
-              <Route path="/transferto/*" element={<ToContent />} />
-              <Route path="/inventory/*" element={<InventoryContent />} />
-              <Route path="/tradeup/*" element={<TradeupPage />} />
-              <Route path="/settings/*" element={<SettingsPage />} />
-              <Route path="/stats/*" element={<OverviewPage />} />
-              <Route path="*" element={<Navigate to="/signin" />} />
-            </Routes>
+                <Route
+                  path="/"
+                  element={
+                    <Navigate
+                      replace
+                      to={userDetails.isLoggedIn ? '/stats' : '/signin'}
+                    />
+                  }
+                />
+                <Route
+                  path="/signin"
+                  element={
+                    userDetails.isLoggedIn ? (
+                      <Navigate replace to="/stats" />
+                    ) : (
+                      <LoginPage />
+                    )
+                  }
+                />
+                <Route
+                  path="/transferfrom"
+                  element={
+                    userDetails.isLoggedIn ? (
+                      <StorageUnitsComponent />
+                    ) : (
+                      <Navigate replace to="/signin" />
+                    )
+                  }
+                />
+                <Route
+                  path="/transferto"
+                  element={
+                    userDetails.isLoggedIn ? (
+                      <ToContent />
+                    ) : (
+                      <Navigate replace to="/signin" />
+                    )
+                  }
+                />
+                <Route
+                  path="/inventory"
+                  element={
+                    userDetails.isLoggedIn ? (
+                      <InventoryContent />
+                    ) : (
+                      <Navigate replace to="/signin" />
+                    )
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    userDetails.isLoggedIn ? (
+                      <SettingsPage />
+                    ) : (
+                      <Navigate replace to="/signin" />
+                    )
+                  }
+                />
+                <Route
+                  path="/stats"
+                  element={
+                    userDetails.isLoggedIn ? (
+                      <OverviewPage />
+                    ) : (
+                      <Navigate replace to="/signin" />
+                    )
+                  }
+                />
+                <Route
+                  path="*"
+                  element={
+                    <Navigate
+                      replace
+                      to={userDetails.isLoggedIn ? '/stats' : '/signin'}
+                    />
+                  }
+                />
+              </Routes>
             </toMoveContext.Provider>
           </main>
         </div>
@@ -944,8 +1032,9 @@ function AppContent() {
 }
 
 export default function App() {
-
   return (
+    <Router>
       <AppContent />
+    </Router>
   );
 }

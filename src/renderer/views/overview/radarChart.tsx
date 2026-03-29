@@ -10,10 +10,10 @@ import {
 } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import { useSelector } from 'react-redux';
-import {itemCategories} from '../../../renderer/components/content/shared/categories';
+import {itemCategories} from 'renderer/components/content/shared/categories';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { ConvertPrices } from '../../../renderer/functionsClasses/prices';
-import { ReducerManager } from '../../../renderer/functionsClasses/reducerManager';
+import { ConvertPrices } from 'renderer/functionsClasses/prices';
+import { ReducerManager } from 'renderer/functionsClasses/reducerManager';
 
 
 ChartJS.register(
@@ -37,14 +37,6 @@ const categoriesRGB = {
   tools: "rgba(255, 159, 64, 0.2)"
 };
 export default function RadarApp() {
-  // Guard: prevent Chart.js errors if no data or invalid data
-  if (!categoriesFixed.length || !finalDataToUse.length) {
-    return <div>No data available for chart.</div>;
-  }
-  const validData = finalDataToUse.every(val => typeof val === 'number' && !isNaN(val));
-  if (!validData) {
-    return <div>Invalid chart data.</div>;
-  }
   let categoriesFixed: Array<string> = [];
   let categoriesColors: any = {};
 

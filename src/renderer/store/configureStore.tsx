@@ -1,26 +1,31 @@
-// configureStore.js
-
-import { createStore } from 'redux'
-import { persistStore, persistReducer } from 'redux-persist'
-import storage from 'redux-persist/lib/storage' // defaults to localStorage for web
-import rootReducers from './reducer'
-
+import { configureStore } from '@reduxjs/toolkit';
+import type { Reducer } from 'redux';
+import { persistReducer, persistStore } from 'redux-persist';
+import storage from 'redux-persist/lib/storage';
+import rootReducers, { RootState } from './reducer';
 
 const persistConfig = {
   key: 'root',
   storage,
-}
+};
 
-const persistedReducer = persistReducer(persistConfig, rootReducers)
+const persistedReducer = persistReducer(
+  persistConfig,
+  rootReducers as Reducer<RootState>
+);
 
 export default () => {
-  let reduxStore = createStore(persistedReducer)
-  if (process.env.NODE_ENV === 'development') {
-    reduxStore = createStore(persistedReducer,
-      // @ts-ignore
-    window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__())
-  }
-  
-  let persistor = persistStore(reduxStore)
-  return { reduxStore, persistor }
-}
+  const reduxStore = configureStore({
+    reducer: persistedReducer,
+    devTools: process.env.NODE_ENV === 'development',
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware({
+        immutableCheck: false,
+        serializableCheck: false,
+      }),
+  });
+
+  const persistor = persistStore(reduxStore);
+
+  return { reduxStore, persistor };
+};

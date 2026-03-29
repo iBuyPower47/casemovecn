@@ -1,39 +1,35 @@
-import { BrowserRouter as Router, Route, Link, Routes } from 'react-router-dom';
 import { Disclosure } from '@headlessui/react';
-import {
-  DocumentDownloadIcon,
-  FilterIcon,
-  SearchIcon,
-} from '@heroicons/react/solid';
+import { FilterIcon, SearchIcon } from '@heroicons/react/solid';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   filterInventoryClearAll,
   inventoryFilterSetSearch,
-} from '../../../../renderer/store/actions/filtersInventoryActions';
-import { classNames } from '../shared/filters/inventoryFunctions';
+} from 'renderer/store/actions/filtersInventoryActions';
 import PricingAmount from '../shared/filters/pricingAmount';
 import MoveLeft from '../shared/filters/inventoryAmount';
 import AccountAmount from '../shared/filters/accountAmount';
-import { searchFilter } from '../../../../renderer/functionsClasses/filters/search';
-import { ConvertPrices } from '../../../../renderer/functionsClasses/prices';
-import { ReducerManager } from '../../../../renderer/functionsClasses/reducerManager';
-import { downloadReport } from '../../../../renderer/functionsClasses/downloadReport';
+import { searchFilter } from 'renderer/functionsClasses/filters/search';
+import { ConvertPrices } from 'renderer/functionsClasses/prices';
+import { ReducerManager } from 'renderer/functionsClasses/reducerManager';
 import InventoryFiltersDisclosure from './filtersDisclosure';
-import { addMajorsFilters } from '../../../../renderer/functionsClasses/filters/filters';
+import { addMajorsFilters } from 'renderer/functionsClasses/filters/filters';
 import { InventoryGetFilterManager } from './inventoryFilterSetup';
+import { Card } from 'renderer/components/ui';
 
-const ClassFilters = InventoryGetFilterManager()
+const ClassFilters = InventoryGetFilterManager();
 
 // ClassFilters.loadFilter(CharacteristicsFilter, true)
 // ClassFilters.loadFilter(ContainerFilter, true)
 
 function Content() {
   const dispatch = useDispatch();
-  const ReducerClass = new ReducerManager(useSelector)
-  const inventoryFilters = ReducerClass.getStorage(ReducerClass.names.inventoryFilters)
-  const inventory = ReducerClass.getStorage(ReducerClass.names.inventory)
-  const pricesResult = ReducerClass.getStorage(ReducerClass.names.pricing)
-  const settingsData = ReducerClass.getStorage(ReducerClass.names.settings)
+  const ReducerClass = new ReducerManager(useSelector);
+  const inventoryFilters = ReducerClass.getStorage(
+    ReducerClass.names.inventoryFilters
+  );
+  const inventory = ReducerClass.getStorage(ReducerClass.names.inventory);
+  const pricesResult = ReducerClass.getStorage(ReducerClass.names.pricing);
+  const settingsData = ReducerClass.getStorage(ReducerClass.names.settings);
 
   async function clear_all() {
     dispatch(filterInventoryClearAll());
@@ -52,65 +48,67 @@ function Content() {
 
   // Calculate inventory amount prices
   let totalAmount = 0 as any;
-  let inventoryFilter = searchFilter(inventoryToUse, inventoryFilters, inventoryFilters)
-  const PricesClass = new ConvertPrices(settingsData, pricesResult)
+  let inventoryFilter = searchFilter(
+    inventoryToUse,
+    inventoryFilters,
+    inventoryFilters
+  );
+  const PricesClass = new ConvertPrices(settingsData, pricesResult);
   inventoryFilter.forEach((projectRow) => {
-    let itemRowPricing = PricesClass.getPrice(projectRow)
+    let itemRowPricing = PricesClass.getPrice(projectRow);
     if (itemRowPricing) {
-      let individualPrice = projectRow.combined_QTY as number * itemRowPricing
-      totalAmount += individualPrice = individualPrice ? individualPrice : 0
+      let individualPrice =
+        (projectRow.combined_QTY as number) * itemRowPricing;
+      totalAmount += individualPrice = individualPrice ? individualPrice : 0;
     }
   });
   totalAmount = totalAmount.toFixed(0);
   addMajorsFilters(inventory.combinedInventory).then((returnValue) => {
-    ClassFilters.loadFilter(returnValue, true)
-  })
-
-
-
+    ClassFilters.loadFilter(returnValue, true);
+  });
 
   return (
-    <div className="bg-white dark:bg-dark-level-one">
+    <Card level="one">
       {/* Filters */}
 
       <Disclosure
         as="section"
         aria-labelledby="filter-heading"
-        className="relative  grid items-center border-b dark:border-opacity-50"
+        className="relative grid items-center border-b border-[var(--border-default)]"
       >
         <h2 id="filter-heading" className="sr-only">
-          Filters
+          筛选
         </h2>
         <div className="relative col-start-1 row-start-1 py-4 flex justify-between">
-          <div className=" max-w-7xl flex items-center space-x-6 divide-x divide-gray-200 text-sm px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl flex items-center space-x-6 divide-x divide-[var(--border-default)] text-sm">
             <div>
-              <Disclosure.Button className="group text-gray-700 font-medium flex items-center text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-500">
+              <Disclosure.Button className="group font-medium flex items-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150">
                 <FilterIcon
-                  className="flex-none w-5 h-5 mr-2 text-gray-400 group-hover:text-gray-500"
+                  className="flex-none w-5 h-5 mr-2 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]"
                   aria-hidden="true"
                 />
-                {inventoryFilters.inventoryFilter.length} Filters
+                {inventoryFilters.inventoryFilter.length} 个筛选
               </Disclosure.Button>
             </div>
             <div className="pl-6">
               <button
                 type="button"
-                className="text-gray-500 dark:text-gray-400"
+                className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors duration-150"
                 onClick={() => clear_all()}
               >
-                Clear all
+                清除全部
               </button>
             </div>
             <label htmlFor="search" className="sr-only">
-              Search items
+              搜索物品
             </label>
-            <div className="relative rounded-md focus:outline-none focus:outline-none">
+            <div className="relative rounded-md focus:outline-none">
               <div
                 className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
                 aria-hidden="true"
               >
                 <SearchIcon
-                  className="mr-3 h-4 w-4 text-gray-400"
+                  className="mr-3 h-4 w-4 text-[var(--text-tertiary)]"
                   aria-hidden="true"
                 />
               </div>
@@ -119,8 +117,8 @@ function Content() {
                 name="search"
                 id="search"
                 value={inventoryFilters.searchInput}
-                className="block w-full pb-0.5  focus:outline-none dark:text-dark-white pl-9 sm:text-sm border-gray-300 h-7 dark:bg-dark-level-one dark:rounded-none dark:bg-dark-level-one dark:rounded-none"
-                placeholder="Search items"
+                className="block w-full pb-0.5 focus:outline-none text-[var(--text-primary)] bg-transparent pl-9 sm:text-sm h-7 rounded-md placeholder:text-[var(--text-tertiary)]"
+                placeholder="搜索物品"
                 spellCheck="false"
                 onChange={(e) =>
                   dispatch(inventoryFilterSetSearch(e.target.value))
@@ -128,54 +126,37 @@ function Content() {
               />
             </div>
           </div>
-          <div className="flex justify-end justify-items-end max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center divide-x divide-gray-200">
-              <div className="pr-3">
-                <Link
-                  to=""
-                  type="button"
-                  onClick={() => downloadReport(settingsData, pricesResult, inventoryToUse)}
-                  className={classNames(
-                    inventoryToUse.length == 0
-                      ? 'pointer-events-none border-gray-100'
-                      : 'hover:shadow-sm border-gray-200 ',
-                    'order-1 ml-3 inline-flex items-center px-4 py-2 border dark:bg-dark-level-three dark:border-none dark:border-opacity-0 dark:text-dark-white   text-sm font-medium rounded-md text-gray-500 bg-white hover:bg-gray-50 focus:outline-none focus:bg-gray-100 sm:order-0 sm:ml-0'
-                  )}
-                >
-                  <DocumentDownloadIcon
-                    className="mr-3 h-4 w-4 text-gray-500 dark:text-dark-white"
-                    aria-hidden="true"
-                  />
-                  Download
-                </Link>
+          <div className="flex justify-end justify-items-end max-w-7xl">
+            <div className="flex items-center divide-x divide-[var(--border-default)]">
+              <div className="pl-3">
+                <PricingAmount
+                  totalAmount={new Intl.NumberFormat(settingsData.locale, {
+                    style: 'currency',
+                    currency: settingsData.currency,
+                  }).format(totalAmount)}
+                />
               </div>
               <div className="pl-3">
-                <PricingAmount totalAmount={new Intl.NumberFormat(settingsData.locale, { style: 'currency', currency: settingsData.currency }).format(totalAmount)} />
+                <MoveLeft
+                  totalAmount={inventory.inventory.length}
+                  textToWrite="库存总计"
+                />
               </div>
               <div className="pl-3">
-
-                <MoveLeft totalAmount={inventory.inventory.length} textToWrite="Total" />
-              </div>
-              <div className="pl-3">
-
-                <AccountAmount totalAmount={inventory.totalAccountItems} textToWrite="Total" />
+                <AccountAmount
+                  totalAmount={inventory.totalAccountItems}
+                  textToWrite="账号总计"
+                />
               </div>
             </div>
           </div>
         </div>
-        <InventoryFiltersDisclosure ClassFilters={ClassFilters}/>
-
-
+        <InventoryFiltersDisclosure ClassFilters={ClassFilters} />
       </Disclosure>
-    </div>
+    </Card>
   );
 }
 
 export default function InventoryFilters() {
-  return (
-    <Routes>
-      <Route path="*" element={<Content />} />
-    </Routes>
-
-  );
+  return <Content />;
 }

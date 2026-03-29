@@ -1,44 +1,49 @@
 /* This example requires Tailwind CSS v2.0+ */
-import { Fragment } from 'react'
-import { Listbox, Transition } from '@headlessui/react'
-import { CheckIcon, SelectorIcon } from '@heroicons/react/solid'
-import { classNames } from '../../../renderer/components/content/shared/filters/inventoryFunctions'
-import { Overview, Settings } from '../../../renderer/interfaces/states'
-import { useDispatch, useSelector } from 'react-redux'
-import { ReducerManager } from '../../../renderer/functionsClasses/reducerManager'
-import { setOverview } from '../../../renderer/store/actions/settings'
+import { Fragment } from 'react';
+import { Listbox, Transition } from '@headlessui/react';
+import { CheckIcon, SelectorIcon } from '@heroicons/react/solid';
+import { classNames } from 'renderer/components/content/shared/filters/inventoryFunctions';
+import { Overview, Settings } from 'renderer/interfaces/states';
+import { useDispatch, useSelector } from 'react-redux';
+import { ReducerManager } from 'renderer/functionsClasses/reducerManager';
+import { setOverview } from 'renderer/store/actions/settings';
 
 interface params {
-    optionsObject: any
-    keyToUse: keyof Overview
+  optionsObject: any;
+  keyToUse: keyof Overview;
 }
 
-export default function ListBoxOptions({optionsObject, keyToUse}: params) {
+export default function ListBoxOptions({ optionsObject, keyToUse }: params) {
+  const dispatch = useDispatch();
+  const ReducerClass = new ReducerManager(useSelector);
+  const settingsData: Settings = ReducerClass.getStorage(
+    ReducerClass.names.settings
+  );
+  let selected = settingsData.overview[keyToUse];
 
-    const dispatch = useDispatch();
-    const ReducerClass = new ReducerManager(useSelector);
-    const settingsData: Settings = ReducerClass.getStorage(ReducerClass.names.settings)
-    let selected = settingsData.overview[keyToUse]
+  async function updateOverview(valueToset: any) {
+    const newOverviewValue: Overview = {
+      ...settingsData.overview,
+      [keyToUse]: valueToset,
+    };
 
-    async function updateOverview(valueToset: any) {
-        let newOverviewValue: Overview = settingsData.overview
-        // @ts-ignore
-        newOverviewValue[keyToUse] = valueToset
-
-        dispatch(setOverview(newOverviewValue));
-        window.electron.store.set('overview', newOverviewValue);
-        window.electron.ipcRenderer.refreshInventory();
-      }
+    dispatch(setOverview(newOverviewValue));
+    window.electron.store.set('overview', newOverviewValue);
+    window.electron.ipcRenderer.refreshInventory();
+  }
 
   return (
     <Listbox value={selected} onChange={updateOverview}>
       {({ open }) => (
         <>
           <div className="relative">
-            <Listbox.Button className="bg-dark-level-two relative w-full   shadow-sm pl-3 pr-10 py-2 text-left cursor-default sm:text-sm">
+            <Listbox.Button className="bg-[var(--bg-level-two)] border border-[var(--border-default)] relative w-full shadow-sm pl-3 pr-10 py-2 text-left cursor-default sm:text-sm text-[var(--text-primary)]">
               <span className="block truncate">{optionsObject[selected]}</span>
               <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <SelectorIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                <SelectorIcon
+                  className="h-5 w-5 text-[var(--text-tertiary)]"
+                  aria-hidden="true"
+                />
               </span>
             </Listbox.Button>
 
@@ -49,28 +54,35 @@ export default function ListBoxOptions({optionsObject, keyToUse}: params) {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Listbox.Options className="absolute z-10 mt-1 w-full bg-dark-level-three shadow-lg max-h-60 py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+              <Listbox.Options className="absolute z-10 mt-1 w-full bg-[var(--bg-level-three)] shadow-[0_8px_24px_rgba(0,0,0,0.6)] border border-[var(--border-default)] max-h-60 py-1 text-base overflow-auto focus:outline-none sm:text-sm">
                 {Object.entries(optionsObject).map(([key, name]: any) => (
                   <Listbox.Option
                     key={name}
                     className={({ active }) =>
                       classNames(
-                        active ? 'bg-dark-level-four' : '',
-                        'cursor-default select-none text-dark-white relative py-2 pl-3 pr-9'
+                        active ? 'bg-[var(--bg-level-four)]' : '',
+                        'cursor-default select-none text-[var(--text-primary)] relative py-2 pl-3 pr-9'
                       )
                     }
                     value={key}
                   >
                     {({ selected, active }) => (
                       <>
-                        <span className={classNames(selected ? 'font-semibold' : 'font-normal', 'block truncate')}>
+                        <span
+                          className={classNames(
+                            selected ? 'font-semibold' : 'font-normal',
+                            'block truncate'
+                          )}
+                        >
                           {name}
                         </span>
 
                         {selected ? (
                           <span
                             className={classNames(
-                              active ? 'text-dark-white' : 'text-dark-white',
+                              active
+                                ? 'text-[var(--text-primary)]'
+                                : 'text-[var(--text-primary)]',
                               'absolute inset-y-0 right-0 flex items-center pr-4'
                             )}
                           >
@@ -87,5 +99,5 @@ export default function ListBoxOptions({optionsObject, keyToUse}: params) {
         </>
       )}
     </Listbox>
-  )
+  );
 }

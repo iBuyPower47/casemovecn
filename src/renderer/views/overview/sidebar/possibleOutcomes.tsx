@@ -1,9 +1,8 @@
 import { CashIcon } from '@heroicons/react/solid';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { classNames } from '../../../../renderer/components/content/shared/filters/inventoryFunctions';
-import { tradeUpSetPossible } from '../../../../renderer/store/actions/tradeUpActions';
+import { classNames } from 'renderer/components/content/shared/filters/inventoryFunctions';
+import { tradeUpSetPossible } from 'renderer/store/actions/tradeUpActions';
 
 const rarityShort = {
   'Factory New': 'FN',
@@ -19,18 +18,27 @@ export default function PossibleOutcomes() {
   const settingsData = useSelector((state: any) => state.settingsReducer);
   const [outcomesRequested, setOutcomesRequested] = useState(0);
   const dispatch = useDispatch();
-  console.log(tradeUpData.possibleOutcomes.length, tradeUpData.tradeUpProducts.length)
+  console.log(
+    tradeUpData.possibleOutcomes.length,
+    tradeUpData.tradeUpProducts.length
+  );
 
   let totalPrice = 0;
   tradeUpData.tradeUpProducts.forEach((element) => {
-    totalPrice += pricesResult.prices[element.item_name + element.item_wear_name || '']?.['steam_listing'];
+    totalPrice +=
+      pricesResult.prices[element.item_name + element.item_wear_name || '']?.[
+        'steam_listing'
+      ];
   });
   totalPrice;
 
   tradeUpData.possibleOutcomes.forEach((element) => {
     element['profit_cal'] =
       (100 / (totalPrice * 100)) *
-      (pricesResult?.prices[element.item_name + element.item_wear_name || '']?.['steam_listing'] * 100);
+      (pricesResult?.prices[element.item_name + element.item_wear_name || '']?.[
+        'steam_listing'
+      ] *
+        100);
   });
   tradeUpData.possibleOutcomes.sort(function (a, b) {
     var keyA = a.profit_cal,
@@ -40,79 +48,80 @@ export default function PossibleOutcomes() {
     return 0;
   });
 
-  // Get outcomes
-  if (
-    tradeUpData.tradeUpProducts.length > 0
-  ) {
-    if (outcomesRequested != tradeUpData.tradeUpProducts.length) {
-      setOutcomesRequested(tradeUpData.tradeUpProducts.length);
-      window.electron.ipcRenderer
-        .getPossibleOutcomes(tradeUpData.tradeUpProducts)
-        .then((messageValue) => {
-          dispatch(tradeUpSetPossible(messageValue));
-        });
-    }
-  }
+  useEffect(() => {
+    const requestedCount = tradeUpData.tradeUpProducts.length;
 
-  if (outcomesRequested != tradeUpData.tradeUpProducts.length) {
-    setOutcomesRequested(tradeUpData.tradeUpProducts.length)
-  }
+    if (outcomesRequested === requestedCount) {
+      return;
+    }
+
+    setOutcomesRequested(requestedCount);
+
+    if (requestedCount === 0) {
+      return;
+    }
+
+    window.electron.ipcRenderer
+      .getPossibleOutcomes(tradeUpData.tradeUpProducts)
+      .then((messageValue) => {
+        dispatch(tradeUpSetPossible(messageValue));
+      });
+  }, [dispatch, outcomesRequested, tradeUpData.tradeUpProducts]);
 
   return (
     <div>
-      <h2 className="text-gray-500  text-xs font-medium uppercase tracking-wide dark:text-gray-400">
+      <h2 className="text-[var(--text-tertiary)] text-xs font-medium uppercase tracking-wide">
         Possible outcomes
       </h2>
       {tradeUpData.possibleOutcomes.length != 0 ? (
         <ul role="list" className="mt-3 grid grid-cols-1 gap-5 sm:gap-6 ">
           {tradeUpData.possibleOutcomes.map((project, index) => (
             <li key={index} className="col-span-1 flex shadow-sm rounded-md">
-              <Link
-                to={{
-                  pathname:
-                    'https://steamcommunity.com/market/listings/730/' +
-                    project.item_name +
-                    ' (' +
-                    project.item_wear_name +
-                    ')',
-                }}
+              <a
+                href={
+                  'https://steamcommunity.com/market/listings/730/' +
+                  project.item_name +
+                  ' (' +
+                  project.item_wear_name +
+                  ')'
+                }
                 target="_blank"
+                rel="noreferrer"
               >
-                <div className=" from-gray-100 to-gray-300 dark:from-gray-300 dark:to-gray-400 shrink-0 h-full  flex items-center justify-center w-16 dark:border-opacity-50 text-white border-t border-l border-b border-gray-200 rounded-l-md dark:bg-dark-level-two bg-linear-to-t">
+                <div className="flex-shrink-0 h-full flex items-center justify-center w-16 text-[var(--text-primary)] border-t border-l border-b border-[var(--border-default)] rounded-l-md bg-[var(--bg-level-two)]">
                   <img
                     className="max-w-none h-11 w-11  object-cover"
                     src={project.image}
                   />
                 </div>
-              </Link>
-              <div className="flex-1 dark:bg-dark-level-two dark:border-opacity-50 flex items-center justify-between border-t border-r border-b border-gray-200 bg-white rounded-r-md truncate">
+              </a>
+              <div className="flex-1 bg-[var(--bg-level-two)] flex items-center justify-between border-t border-r border-b border-[var(--border-default)] rounded-r-md truncate">
                 <div className="flex-1 px-4 py-2 text-sm truncate">
                   <div className="flex justify-between">
-                    <span className="text-gray-900 font-medium hover:text-gray-600 dark:text-dark-white">
+                    <span className="text-[var(--text-primary)] font-medium hover:text-[var(--text-secondary)]">
                       {project.item_name}
                     </span>
                     <span
                       className={classNames(
                         project?.profit_cal > 100
-                          ? 'bg-green-500'
-                          : 'bg-red-500',
-                        'w-2.5 h-2.5 shrink-0 rounded-full'
+                          ? 'bg-[var(--success)]'
+                          : 'bg-[var(--error)]',
+                        'w-2.5 h-2.5 flex-shrink-0 rounded-full'
                       )}
                       aria-hidden="true"
                     />
-
                   </div>
                   <div className="flex justify-between">
-                    <p className="text-gray-500">
+                    <p className="text-[var(--text-tertiary)]">
                       {project.percentage} % |{' '}
                       {rarityShort[project.item_wear_name]} |{' '}
                       {project.float_chance.toString()?.substr(1, 8)}
                     </p>
                     <div className="flex items-center">
-                      <p className="text-gray-500">
-                        <CashIcon className="w-4 text-gray-500 h-4 mr-1" />
+                      <p className="text-[var(--text-tertiary)]">
+                        <CashIcon className="w-4 text-[var(--text-tertiary)] h-4 mr-1" />
                       </p>
-                      <p className="text-gray-500">
+                      <p className="text-[var(--text-tertiary)]">
                         {new Intl.NumberFormat(settingsData.locale, {
                           style: 'decimal',
                           maximumFractionDigits: 2,
@@ -129,23 +138,23 @@ export default function PossibleOutcomes() {
       ) : (
         <ul role="list" className="mt-3 grid grid-cols-1 gap-5 sm:gap-6 ">
           <li key={9999} className="col-span-1 flex shadow-sm rounded-md">
-            <div className=" shrink-0 h-full  flex items-center justify-center w-16 dark:border-opacity-50 text-white border-t border-l border-b border-gray-200 rounded-l-md border-dotted dark:bg-dark-level-two border-r">
+            <div className="flex-shrink-0 h-full flex items-center justify-center w-16 text-[var(--text-primary)] border-t border-l border-b border-r border-[var(--border-default)] rounded-l-md border-dotted bg-[var(--bg-level-two)]">
               <div className="max-w-none h-11 w-11  object-cover" />
             </div>
-            <div className="flex-1 dark:bg-dark-level-two border-dotted dark:border-opacity-50 flex items-center justify-between border-t border-r border-b border-gray-200 bg-white rounded-r-md truncate">
+            <div className="flex-1 bg-[var(--bg-level-two)] border-dotted flex items-center justify-between border-t border-r border-b border-[var(--border-default)] rounded-r-md truncate">
               <div className="flex-1 px-4 py-2 text-sm truncate">
                 <div className="flex justify-between">
-                  <span className="text-gray-900 font-medium hover:text-gray-600 dark:text-dark-white">
+                  <span className="text-[var(--text-primary)] font-medium hover:text-[var(--text-secondary)]">
                     Add 1 to see the results
                   </span>
                 </div>
                 <div className="flex justify-start">
-                  <p className="text-gray-500"></p>
+                  <p className="text-[var(--text-tertiary)]"></p>
                   <div className="flex items-center">
-                    <p className="text-gray-500">
+                    <p className="text-[var(--text-tertiary)]">
                       Prices are the SCM prices
                     </p>
-                    <p className="text-gray-500"></p>
+                    <p className="text-[var(--text-tertiary)]"></p>
                   </div>
                 </div>
               </div>

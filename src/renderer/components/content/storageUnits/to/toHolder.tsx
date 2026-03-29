@@ -1,16 +1,15 @@
+import { useMemo } from 'react';
 import StorageFilter from './toFilters';
 import StorageRow from './toStorageRow';
 import StorageSelectorContent from './toSelector';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   classNames,
-  sortDataFunction,
+  sortDataFunctionTwo,
 } from '../../shared/filters/inventoryFunctions';
-import { useState } from 'react';
-import { BanIcon, FireIcon } from '@heroicons/react/solid';
-import { searchFilter } from '../../../../../renderer/functionsClasses/filters/search';
-import { State } from '../../../../../renderer/interfaces/states';
+import { BanIcon, PlusCircleIcon } from '@heroicons/react/solid';
+import { searchFilter } from 'renderer/functionsClasses/filters/search';
+import { State } from 'renderer/interfaces/states';
 import {
   RowHeader,
   RowHeaderCondition,
@@ -28,12 +27,37 @@ function StorageUnits() {
   const inventoryFilters = useSelector(
     (state: any) => state.inventoryFiltersReducer
   );
-  let inventoryTouse = inventoryFilter.inventoryFiltered
-  if (inventoryTouse.length == 0 && inventoryFilters.inventoryFilter?.length == 0 ) {
-    inventoryTouse = inventory.combinedInventory
-  }
-  const [getStorage, setStorage] = useState(inventoryTouse);
-  getStorage;
+  const inventoryTouse = useMemo(() => {
+    if (inventoryFilters.inventoryFilter?.length === 0) {
+      return inventory.combinedInventory || [];
+    }
+    return inventoryFilter.inventoryFiltered || [];
+  }, [
+    inventory.combinedInventory,
+    inventoryFilter.inventoryFiltered,
+    inventoryFilters.inventoryFilter,
+  ]);
+
+  const getStorage = useMemo(() => {
+    const sorted = sortDataFunctionTwo(
+      toReducer.sortValue,
+      [...inventoryTouse],
+      pricesResult.prices,
+      settingsData?.source?.title
+    );
+    const safeResult = Array.isArray(sorted) ? [...sorted] : [];
+    if (toReducer.sortBack === true) {
+      safeResult.reverse();
+    }
+    return safeResult;
+  }, [
+    inventoryTouse,
+    pricesResult.prices,
+    settingsData?.source?.title,
+    toReducer.sortBack,
+    toReducer.sortValue,
+  ]);
+
   function sleep(time) {
     return new Promise((resolve) => setTimeout(resolve, time));
   }
@@ -78,32 +102,25 @@ function StorageUnits() {
     }
   }
 
-
-  async function storageResult() {
-    const storageResult = await sortDataFunction(
-      toReducer.sortValue,
-      inventoryTouse,
-      pricesResult.prices,
-      settingsData?.source?.title
+  let inventoryMoveable = useMemo(() => {
+    const filteredInventory = searchFilter(
+      getStorage,
+      inventoryFilter,
+      toReducer
     );
-    setStorage(storageResult);
-  }
-  storageResult();
-  if (toReducer.sortBack == true) {
-    getStorage.reverse();
-  }
-  let inventoryMoveable = searchFilter(getStorage, inventoryFilter, toReducer);
-  inventoryMoveable = inventoryMoveable.filter(function (item) {
-    return item.item_moveable == true;
-  });
+
+    return filteredInventory.filter(function (item) {
+      return item.item_moveable == true;
+    });
+  }, [getStorage, inventoryFilter, toReducer]);
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       {/* Page title & actions */}
-      <div className="border-b border-gray-200 px-4 py-4 sm:flex sm:items-center sm:justify-between sm:px-6 lg:px-8 dark:border-opacity-50 ">
+      <div className="shrink-0 border-b border-[var(--border-default)] bg-[var(--bg-level-one)] px-4 py-4 sm:flex sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-medium dark:text-dark-white leading-6 mt-2 mb-2 text-gray-900 sm:truncate">
-            Transfer to storage units
+          <h1 className="text-lg font-medium text-[var(--text-primary)] leading-6 sm:truncate">
+            存入存储组件
           </h1>
         </div>
       </div>
@@ -115,115 +132,106 @@ function StorageUnits() {
       {/* Projects table (small breakpoint and up) */}
 
       <div className="hidden sm:block">
-        <div className="align-middle inline-block min-w-full border-b border-gray-200 dark:border-opacity-50 dark:text-gray-400">
-          <table className="min-w-full">
-            <thead className="dark:bg-dark-level-two bg-gray-50">
-              <tr
-                className={classNames(
-                  settingsData.os == 'win32' ? 'top-7' : 'top-0',
-                  'border-gray-200 sticky'
-                )}
-              >
-                <RowHeader headerName="Product" sortName="Product name" />
-                <RowHeaderCondition
-                  headerName="Collection"
-                  sortName="Collection"
-                  condition="Collections"
-                />
-                <RowHeaderCondition
-                  headerName="Price"
-                  sortName="Price"
-                  condition="Price"
-                />
-                <RowHeaderCondition
-                  headerName="Stickers/Patches"
-                  sortName="Stickers"
-                  condition="Stickers/patches"
-                />
-                <RowHeaderCondition
-                  headerName="Float"
-                  sortName="wearValue"
-                  condition="Float"
-                />
-                <RowHeaderCondition
-                  headerName="Rarity"
-                  sortName="Rarity"
-                  condition="Rarity"
-                />
-                <RowHeaderCondition
-                  headerName="Tradehold"
-                  sortName="tradehold"
-                  condition="Tradehold"
-                />
-                <RowHeader headerName="QTY" sortName="QTY" />
-                <RowHeaderPlain headerName="Move" />
-
-                <th className="table-cell px-6 py-2 border-b border-gray-200 bg-gray-50  dark:border-opacity-50 dark:bg-dark-level-two text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <div className="flex">
-                    <button
-                      onClick={() => ultimateFire()}
-                      className={classNames(
-                        1000 -
-                          toReducer.activeStoragesAmount -
-                          toReducer.totalItemsToMove ==
-                          0 ||
-                          toReducer.totalToMove.length ==
-                            inventoryFilters.inventoryFiltered.length
-                          ? 'pointer-events-none text-gray-200 dark:text-gray-600'
-                          : 'text-gray-600 dark:text-gray-400'
-                      )}
-                    >
-                      <FireIcon
+        <div className="max-h-[calc(100vh-285px)] overflow-y-auto content-scrollbar border-b border-[var(--border-default)]">
+          <div className="align-middle inline-block min-w-full">
+            <table className="min-w-full">
+              <thead className="inv-thead">
+                <tr>
+                  <RowHeader headerName="物品" sortName="Product name" />
+                  <RowHeaderCondition
+                    headerName="收藏品"
+                    sortName="Collection"
+                    condition="Collections"
+                  />
+                  <RowHeaderCondition
+                    headerName="价格"
+                    sortName="Price"
+                    condition="Price"
+                  />
+                  <RowHeaderCondition
+                    headerName="贴纸/布章"
+                    sortName="Stickers"
+                    condition="Stickers/patches"
+                  />
+                  <RowHeaderCondition
+                    headerName="磨损值"
+                    sortName="wearValue"
+                    condition="Float"
+                  />
+                  <RowHeaderCondition
+                    headerName="稀有度"
+                    sortName="Rarity"
+                    condition="Rarity"
+                  />
+                  <RowHeaderCondition
+                    headerName="交易冷却"
+                    sortName="tradehold"
+                    condition="Tradehold"
+                  />
+                  <RowHeader headerName="数量" sortName="QTY" />
+                  <RowHeaderPlain headerName="移动" />
+                  <th className="table-cell px-6 py-2 border-b border-[var(--border-default)] bg-[var(--bg-level-two)] text-center text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                    <div className="flex">
+                      <button
+                        onClick={() => ultimateFire()}
+                        title="全选"
                         className={classNames(
-                          ' h-4 w-4 text-current dark:text-current hover:text-yellow-400 dark:hover:text-yellow-400'
+                          1000 -
+                            toReducer.activeStoragesAmount -
+                            toReducer.totalItemsToMove ==
+                            0 ||
+                            toReducer.totalToMove.length ==
+                              inventoryFilters.inventoryFiltered.length
+                            ? 'pointer-events-none text-[var(--text-disabled)]'
+                            : 'text-[var(--text-secondary)]'
                         )}
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <button
-                      onClick={() => removeFire()}
-                      className={classNames(
-                        toReducer.totalToMove.length == 0
-                          ? 'pointer-events-none text-gray-200 dark:text-gray-600'
-                          : 'text-gray-600 dark:text-gray-400'
-                      )}
-                    >
-                      <BanIcon
+                      >
+                        <PlusCircleIcon
+                          className={classNames(
+                            ' h-4 w-4 text-current text-current hover:text-[var(--warning)]'
+                          )}
+                          aria-hidden="true"
+                        />
+                      </button>
+                      <button
+                        onClick={() => removeFire()}
+                        title="取消"
                         className={classNames(
-                          ' h-4 w-4 text-current dark:text-current hover:text-red-400 dark:hover:text-red-400'
+                          toReducer.totalToMove.length == 0
+                            ? 'pointer-events-none text-[var(--text-disabled)]'
+                            : 'text-[var(--text-secondary)]'
                         )}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </div>
-                  <span className="md:hidden">move</span>
-                </th>
-                <th className="md:hidden table-cell px-6 py-2 border-b border-gray-200 bg-gray-50   dark:border-opacity-50 dark:bg-dark-level-two text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <span className="md:hidden"></span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100 dark:divide-gray-500 dark:bg-dark-level-one">
-              {inventoryMoveable.map((project, index) => (
-                <tr
-                  key={project.item_id}
-                  className="hover:shadow-inner findRow"
-                >
-                  <StorageRow projectRow={project} index={index} />
+                      >
+                        <BanIcon
+                          className={classNames(
+                            ' h-4 w-4 text-current text-current hover:text-[var(--error)]'
+                          )}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </div>
+                    <span className="md:hidden">移动</span>
+                  </th>
+                  <th className="md:hidden table-cell px-6 py-2 border-b border-[var(--border-default)] bg-[var(--bg-level-two)] text-center text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                    <span className="md:hidden"></span>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-[var(--bg-level-one)] text-[var(--text-secondary)]">
+                {inventoryMoveable.map((project, index) => (
+                  <tr key={project.item_id} className="inv-row findRow">
+                    <StorageRow projectRow={project} index={index} />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
 export default function ToContent() {
-  return (
-    <Routes>
-      <Route path="*" element={<StorageUnits />} />
-    </Routes>
-  );
+  return <StorageUnits />;
 }

@@ -2,11 +2,7 @@ import { StartLoginSessionWithCredentialsDetails } from 'steam-session/dist/inte
 import SteamTotp from 'steam-totp';
 import { flowLoginRegular } from '../../login/loginRegular';
 import { LoginGenerator } from '../IPCGenerators/loginGenerator';
-import {
-  getLoginDetails,
-  getRefreshToken,
-  getValue
-} from './settings';
+import { getLoginDetails, getRefreshToken, getValue } from './settings';
 
 const ClassLoginResponse = new LoginGenerator();
 // 1: If the user has remembered the account, check if login key exists. If login fails, notify renderer, delete Loginkey (not password)
@@ -28,8 +24,6 @@ class login {
   loginOptionsLegacy = {} as any;
   resolve;
 
-
-
   mainLogin(
     steamuser,
     username,
@@ -50,7 +44,6 @@ class login {
       this.steamUser = steamuser;
       this.clientjstoken = clientjstoken;
       this.refreshToken = refreshToken;
-
 
       // Get all account details
       getValue('account').then((returnValue) => {
@@ -102,7 +95,7 @@ class login {
     }
 
     // 2
-    if (this.rememberedSensitive?.secretKey) {
+    if (this.rememberedSensitive?.secretKey || this.secretKey) {
       this._login_secretKey();
       return;
     }
@@ -124,7 +117,6 @@ class login {
     flowLoginRegular(this.logInOptions, this.shouldRemember).then(
       (returnValue) => {
         if (returnValue.responseStatus == 'loggedIn') {
-
           this.steamUser.logOn({
             refreshToken: returnValue.refreshToken,
           });
@@ -175,12 +167,11 @@ class login {
   _login_secretKey() {
     this._defaultError();
     this.shouldRemember = true;
+    const secret = this.secretKey || this.rememberedSensitive?.secretKey;
     this.logInOptions = {
       accountName: this.username,
       password: this.password,
-      steamGuardCode: SteamTotp.generateAuthCode(
-        this.rememberedSensitive?.secretKey
-      ),
+      steamGuardCode: SteamTotp.generateAuthCode(secret),
     };
     this._loginStart();
   }

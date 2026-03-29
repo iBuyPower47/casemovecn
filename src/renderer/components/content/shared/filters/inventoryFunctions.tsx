@@ -1,104 +1,107 @@
-import { ItemRow, ItemRowStorage } from '../../../../../renderer/interfaces/items';
-import { Inventory, InventoryFilters, Prices, Settings, State } from '../../../../../renderer/interfaces/states';
-import { filterInventorySetSort } from '../../../../../renderer/store/actions/filtersInventoryActions';
-import {itemCategories, itemSubCategories} from '../categories';
-
-
+import { ItemRow, ItemRowStorage } from 'renderer/interfaces/items';
+import { State } from 'renderer/interfaces/states';
+import { filterInventorySetSort } from 'renderer/store/actions/filtersInventoryActions';
+import { itemCategories, itemSubCategories } from '../categories';
 
 // Will get the categories
-async function getCategory(toLoopThrough: Array<ItemRow | ItemRowStorage>, additionalObjectToAdd: any = {}) {
+async function getCategory(
+  toLoopThrough: Array<ItemRow | ItemRowStorage>,
+  additionalObjectToAdd: any = {}
+) {
   let returnArray: Array<ItemRow | ItemRowStorage> = [];
   let itemIdsFiltered: Array<string> = [];
 
   for (const [_, value] of Object.entries(itemCategories)) {
-    let result = toLoopThrough.filter(itemRow => itemRow.item_url.includes(value.value));
-    result = result.map(function(el) {
-      itemIdsFiltered.push(el.item_id)
+    let result = toLoopThrough.filter(
+      (itemRow) =>
+        !itemIdsFiltered.includes(itemRow.item_id) &&
+        itemRow.item_url.split('/')[1] === value.value
+    );
+    result = result.map(function (el) {
+      itemIdsFiltered.push(el.item_id);
       let o = Object.assign({}, el);
-      o.category = value.name
-      o.bgColorClass = value.bgColorClass
+      o.category = value.name;
+      o.bgColorClass = value.bgColorClass;
 
       // Major
-      const majorRegex = new RegExp('(?:' + Object.keys(itemSubCategories.majors).join('|') + ')', 'g')
+      const majorRegex = new RegExp(
+        '(?:' + Object.keys(itemSubCategories.majors).join('|') + ')',
+        'g'
+      );
       const majorMatch = el.item_name.match(majorRegex);
-      if (majorMatch) {
-        o.major = majorMatch[0]
+      if (majorMatch) {
+        o.major = majorMatch[0];
       }
 
       // Additional keys to add
-      for (const [keyToAdd, valueToAdd] of Object.entries(additionalObjectToAdd)) {
-        o[keyToAdd] = valueToAdd
+      for (const [keyToAdd, valueToAdd] of Object.entries(
+        additionalObjectToAdd
+      )) {
+        o[keyToAdd] = valueToAdd;
       }
       return o;
-    })
+    });
 
-
-    returnArray.push(...result)
+    returnArray.push(...result);
   }
 
   // If any items are left behind - ie doesn't fit in a category, we add it back to the array.
   if (toLoopThrough.length != returnArray.length) {
-
-    returnArray.push(...toLoopThrough.filter(itemRow => !itemIdsFiltered.includes(itemRow.item_id)));
+    returnArray.push(
+      ...toLoopThrough.filter(
+        (itemRow) => !itemIdsFiltered.includes(itemRow.item_id)
+      )
+    );
   }
-  return returnArray
-
+  return returnArray;
 }
 
 // This will combine the inventory when specific conditions match
-export default function combineInventory(thisInventory: Array<ItemRow | ItemRowStorage>, settings: any, additionalObjectToAdd: any = {}) {
-
+export default function combineInventory(
+  thisInventory: Array<ItemRow | ItemRowStorage>,
+  settings: any,
+  additionalObjectToAdd: any = {}
+) {
   const seenProducts = [] as any;
   const newInventory = [] as any;
 
-  for (const [, value] of Object.entries(thisInventory)) {
-    let valued = value;
-
-    // Create a string that matches the conditions
-    let wearName = valued['item_wear_name']  || 0
-    let valueConditions =
-      valued['item_name'] +
-      valued['item_customname'] +
-      valued['item_url'] +
-      valued['trade_unlock'] +
-      valued['item_moveable'] +
-      valued['item_has_stickers'] +
+  function buildConditions(item: any, includeFloat: boolean): string {
+    const wearName = item['item_wear_name'] || 0;
+    // Use JSON.stringify for stickers so different sticker objects don't
+    // all collapse to "[object Object]" and cause incorrect item grouping.
+    let cond =
+      item['item_name'] +
+      item['item_customname'] +
+      item['item_url'] +
+      item['trade_unlock'] +
+      item['item_moveable'] +
+      item['item_has_stickers'] +
+      item['item_has_keychain'] +
+      JSON.stringify(item['keychain']) +
       wearName +
-      valued['stickers'];
-
-    if (valued['item_paint_wear'] != undefined && settings.columns.includes('Float')) {
-      valueConditions = valueConditions + valued['item_paint_wear'];
+      JSON.stringify(item['stickers']);
+    if (includeFloat && item['item_paint_wear'] != undefined) {
+      cond = cond + item['item_paint_wear'];
     }
+    return cond;
+  }
+
+  const includeFloat = settings.columns.includes('Float');
+
+  for (const [, value] of Object.entries(thisInventory)) {
+    const valueConditions = buildConditions(value, includeFloat);
 
     // Filter the inventory
     if (seenProducts.includes(valueConditions) == false) {
-      let length = thisInventory.filter(function (item) {
-        let wearName = item['item_wear_name']  || 0
-        let itemConditions =
-          item['item_name'] +
-          item['item_customname'] +
-          item['item_url'] +
-          item['trade_unlock'] +
-          item['item_moveable'] +
-          item['item_has_stickers'] +
-          wearName +
-          item['stickers'];
-        if (item['item_paint_wear'] != undefined && settings.columns.includes('Float')) {
-          itemConditions = itemConditions + item['item_paint_wear'];
-        }
-
-        return itemConditions == valueConditions;
+      const matchingItems = thisInventory.filter(function (item) {
+        return buildConditions(item, includeFloat) == valueConditions;
       });
 
       // Get all ids
-      let valuedList = [] as any;
-      for (const [, filteredValue] of Object.entries(length)) {
-        let filteredValued = filteredValue
+      const valuedList = matchingItems.map((item) => item['item_id']);
 
-        valuedList.push(filteredValued['item_id']);
-      }
-
-      let newDict = length[0];
+      // Create a shallow copy so we never mutate the original raw inventory item.
+      const newDict = { ...matchingItems[0] };
       newDict['combined_ids'] = valuedList;
       newDict['combined_QTY'] = valuedList.length;
       newInventory.push(newDict);
@@ -107,9 +110,11 @@ export default function combineInventory(thisInventory: Array<ItemRow | ItemRowS
       seenProducts.push(valueConditions);
     }
   }
-  return getCategory(newInventory, additionalObjectToAdd).then((returnValue) => {
-    return returnValue
-  })
+  return getCategory(newInventory, additionalObjectToAdd).then(
+    (returnValue) => {
+      return returnValue;
+    }
+  );
 }
 
 export async function filterInventoryd(
@@ -199,16 +204,12 @@ export function classNames(...classes) {
 }
 
 // Sort function
-export async function onSortChange(dispatch: Function, inventoryFiltersReducer: InventoryFilters, inventoryReducer: Inventory, pricingReducer: Prices, settingsReducer: Settings, sortValue: string) {
-  dispatch(
-    await filterInventorySetSort(
-      inventoryFiltersReducer,
-      inventoryReducer,
-      pricingReducer,
-      settingsReducer,
-      sortValue
-    )
-  );
+export async function onSortChange(
+  dispatch: Function,
+  currentState: State,
+  sortValue: string
+) {
+  dispatch(await filterInventorySetSort(currentState, sortValue));
 }
 
 export async function sortDataFunction(
@@ -219,10 +220,10 @@ export async function sortDataFunction(
 ) {
   function sortRun(valueOne, ValueTwo, useNaN = false) {
     if (valueOne == undefined) {
-      valueOne = -90000000000
+      valueOne = -90000000000;
     }
     if (ValueTwo == undefined) {
-      ValueTwo = -90000000000
+      ValueTwo = -90000000000;
     }
     if (valueOne < ValueTwo) {
       return -1;
@@ -238,10 +239,10 @@ export async function sortDataFunction(
   }
   function sortRunAlt(valueOne, ValueTwo) {
     if (isNaN(valueOne)) {
-      valueOne = -90000000000
+      valueOne = -90000000000;
     }
     if (isNaN(ValueTwo)) {
-      ValueTwo = -90000000000
+      ValueTwo = -90000000000;
     }
     if (valueOne < ValueTwo) {
       return -1;
@@ -289,8 +290,12 @@ export async function sortDataFunction(
     case 'Price':
       inventory.sort(function (a, b) {
         return sortRunAlt(
-          prices[a.item_name  + a.item_wear_name || '']?.[pricingSource] * a.combined_QTY,
-          prices[b.item_name  + b.item_wear_name || '']?.[pricingSource] * b.combined_QTY
+          prices[(a.item_name ?? '') + (a.item_wear_name ?? '')]?.[
+            pricingSource
+          ] * a.combined_QTY,
+          prices[(b.item_name ?? '') + (b.item_wear_name ?? '')]?.[
+            pricingSource
+          ] * b.combined_QTY
         );
       });
       return inventory;
@@ -310,9 +315,13 @@ export async function sortDataFunction(
     case 'Collection':
       inventory.sort(function (a, b) {
         if (b == undefined) {
-          return -1
+          return -1;
         }
-        return sortRun(a.collection?.toLowerCase(), b.collection?.toLowerCase(), true);
+        return sortRun(
+          a.collection?.toLowerCase(),
+          b.collection?.toLowerCase(),
+          true
+        );
       });
       return inventory;
 
@@ -362,10 +371,10 @@ export function sortDataFunctionTwo(
 ) {
   function sortRun(valueOne, ValueTwo, useNaN = false) {
     if (valueOne == undefined) {
-      valueOne = -90000000000
+      valueOne = -90000000000;
     }
     if (ValueTwo == undefined) {
-      ValueTwo = -90000000000
+      ValueTwo = -90000000000;
     }
     if (valueOne < ValueTwo) {
       return -1;
@@ -381,10 +390,10 @@ export function sortDataFunctionTwo(
   }
   function sortRunAlt(valueOne, ValueTwo) {
     if (isNaN(valueOne)) {
-      valueOne = -90000000000
+      valueOne = -90000000000;
     }
     if (isNaN(ValueTwo)) {
-      ValueTwo = -90000000000
+      ValueTwo = -90000000000;
     }
     if (valueOne < ValueTwo) {
       return -1;
@@ -432,8 +441,12 @@ export function sortDataFunctionTwo(
     case 'Price':
       inventory.sort(function (a, b) {
         return sortRunAlt(
-          prices[a.item_name  + a.item_wear_name || '']?.[pricingSource] * a.combined_QTY || 1,
-          prices[b.item_name  + b.item_wear_name || '']?.[pricingSource] * b.combined_QTY || 1
+          prices[(a.item_name ?? '') + (a.item_wear_name ?? '')]?.[
+            pricingSource
+          ] * a.combined_QTY,
+          prices[(b.item_name ?? '') + (b.item_wear_name ?? '')]?.[
+            pricingSource
+          ] * b.combined_QTY
         );
       });
       return inventory;
@@ -453,9 +466,13 @@ export function sortDataFunctionTwo(
     case 'Collection':
       inventory.sort(function (a, b) {
         if (b == undefined) {
-          return -1
+          return -1;
         }
-        return sortRun(a.collection?.toLowerCase(), b.collection?.toLowerCase(), true);
+        return sortRun(
+          a.collection?.toLowerCase(),
+          b.collection?.toLowerCase(),
+          true
+        );
       });
       return inventory;
 

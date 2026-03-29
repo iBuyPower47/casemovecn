@@ -1,73 +1,74 @@
 import {
   ClipboardCheckIcon,
-  ClipboardCopyIcon,
+  // ClipboardCopyIcon,
   ExternalLinkIcon,
   LockClosedIcon,
 } from '@heroicons/react/solid';
-import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import QRCode from 'react-qr-code';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { LoadingButton } from '../../../renderer/components/content/shared/animations';
-import { classNames } from '../../../renderer/components/content/shared/filters/inventoryFunctions';
-import NotificationElement from '../../../renderer/components/content/shared/modals & notifcations/notification';
-import SteamLogo from '../../../renderer/components/content/shared/steamLogo';
-import { ReducerManager } from '../../../renderer/functionsClasses/reducerManager';
-import { State } from '../../../renderer/interfaces/states';
+import { LoadingButton } from 'renderer/components/content/shared/animations';
+import { classNames } from 'renderer/components/content/shared/filters/inventoryFunctions';
+import NotificationElement from 'renderer/components/content/shared/modals & notifcations/notification';
+import { ReducerManager } from 'renderer/functionsClasses/reducerManager';
+import { State } from 'renderer/interfaces/states';
 import {
   HandleLoginObjectClass,
   LoginCommand,
   LoginCommandReturnPackage,
   LoginNotificationObject,
   LoginOptions,
-} from '../../../shared/Interfaces.tsx/store';
+} from 'shared/Interfaces.tsx/store';
 import { handleSuccess } from './HandleSuccess';
 import SteamCloseModal from './closeSteamModal';
 import LoginTabs from './components/LoginTabs';
 import ConfirmModal from './confirmLoginModal';
 import { LoginMethod } from './types/LoginMethod';
-useEffect;
 const loginResponseObject: LoginNotificationObject = {
   loggedIn: {
     success: true,
-    title: 'Logged in successfully!',
-    text: 'The app has successfully logged you in. Happy storaging.',
+    title: '登录成功！',
+    text: '应用已成功登录，祝您使用愉快。',
+  },
+  missingRequiredField: {
+    success: false,
+    title: '缺少必填项',
+    text: '请输入必填内容后再继续。',
   },
   steamGuardError: {
     success: false,
-    title: 'Steam Guard error!',
-    text: 'Steam Guard might be required. Try again.',
+    title: 'Steam 令牌错误！',
+    text: '可能需要 Steam 令牌验证，请重试。',
   },
   steamGuardCodeIncorrect: {
     success: false,
-    title: 'Wrong Steam Guard code',
-    text: 'Got the wrong Steam Guard code. Try again.',
+    title: 'Steam 令牌代码错误',
+    text: '令牌代码不正确，请重试。',
   },
   defaultError: {
     success: false,
-    title: 'Unknown error',
-    text: 'Could be wrong credentials, a network error, the account playing another game or something else. ',
+    title: '未知错误',
+    text: '可能是凭据错误、网络问题、账号正在其他地方游戏或其他原因。',
   },
   playingElsewhere: {
     success: false,
-    title: 'Playing elsewhere',
-    text: 'You were logged in but the account is currently playing elsewhere.',
+    title: '账号在其他地方运行',
+    text: '已登录成功，但该账号当前正在其他地方游戏中。',
   },
   wrongLoginToken: {
     success: false,
-    title: 'Wrong login token',
-    text: 'Got the wrong login token.',
+    title: '登录令牌错误',
+    text: '登录令牌不正确。',
   },
   webtokenNotJSON: {
     success: false,
-    title: 'Not a JSON string',
-    text: 'Did you copy the entire string? Try again.',
+    title: '不是有效的 JSON 字符串',
+    text: '请确认已复制完整字符串，然后重试。',
   },
   webtokenNotLoggedIn: {
     success: false,
-    title: 'Not logged in',
-    text: 'Please log in to the browser and try again.',
+    title: '未登录',
+    text: '请先在浏览器中登录，然后重试。',
   },
 };
 
@@ -75,7 +76,6 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
   // Usestate
   isLock;
   replaceLock;
-  const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authCode, setAuthCode] = useState('');
@@ -102,10 +102,18 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
     setDoShow(true);
   }
 
+  async function openValidationNotification(text: string) {
+    setWasSuccess(loginResponseObject.missingRequiredField.success);
+    setTitleToDisplay(loginResponseObject.missingRequiredField.title);
+    setTextToDisplay(text);
+    setDoShow(true);
+  }
+
   class HandleLogin {
     command: keyof LoginOptions;
     relevantFunction: Function;
     handleObject: HandleLoginObjectClass = {
+      missingRequiredField: this.handleMissingRequiredField,
       webtokenNotLoggedIn: this.handleWebTokenNotLoggedIn,
       webtokenNotJSON: this.handlewebtokenNotJson,
       wrongLoginToken: this.handleWrongLoginToken,
@@ -124,6 +132,10 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
       openNotification(this.command);
       setLoadingButton(false);
       setClientjstoken('');
+    }
+
+    async handleMissingRequiredField() {
+      setLoadingButton(false);
     }
 
     async handleWebTokenNotLoggedIn() {
@@ -180,16 +192,15 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
         openNotification('webtokenNotJSON');
         setLoadingButton(false);
         setClientjstoken('');
-        return;
+        return null;
       }
 
-      console.log("clientjstokenToSend:", clientjstokenToSend);
       // Is logged in?
       if (!clientjstokenToSend.logged_in) {
         openNotification('webtokenNotLoggedIn');
         setLoadingButton(false);
         setClientjstoken('');
-        return;
+        return null;
       }
     } else {
       clientjstokenToSend = '';
@@ -207,7 +218,41 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
   const [hasAskedCloseSteam, setHasAskedCloseSteam] = useState(false);
   setLoadingButton;
 
-  async function onSubmit() {
+  function validateBeforeSubmit() {
+    if (loginMethod === 'QR') {
+      return false;
+    }
+
+    if (loginMethod === 'WEBTOKEN') {
+      if (clientjstoken.trim() === '') {
+        openValidationNotification('请输入网页登录信息');
+        return false;
+      }
+
+      return true;
+    }
+
+    const usernameValue = isLock != '' ? isLock : username;
+    const requiresPassword = !hasChosenAccountLoginKey;
+
+    if (usernameValue.trim() === '') {
+      openValidationNotification('请输入用户名');
+      return false;
+    }
+
+    if (requiresPassword && password.trim() === '') {
+      openValidationNotification('请输入密码');
+      return false;
+    }
+
+    return true;
+  }
+
+  async function submitLogin() {
+    if (!validateBeforeSubmit()) {
+      return;
+    }
+
     setLoadingButton(true);
 
     if (!hasAskedCloseSteam && currentState.settingsReducer.steamLoginShow) {
@@ -219,7 +264,12 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
         return;
       }
     }
-    let clientjstokenToSend = await validateWebToken();
+    const clientjstokenToSend = await validateWebToken();
+
+    if (loginMethod === 'WEBTOKEN' && clientjstokenToSend === null) {
+      return;
+    }
+
     let usernameToSend = username as any;
     let passwordToSend = password as any;
     let storePasswordToSend = storeRefreshToken as any;
@@ -235,7 +285,7 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
         clientjstokenToSend != '' ? false : storePasswordToSend,
         authCode,
         sharedSecret,
-        clientjstokenToSend,
+        clientjstokenToSend
       );
 
     // Notification and react
@@ -245,16 +295,11 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
       handleSuccess(
         responseStatus.returnPackage as LoginCommandReturnPackage,
         dispatch,
-        currentState,
+        currentState
       );
-      setLoadingButton(false);
-      navigate('/overview');
     } else {
       handleError();
     }
-
-    console.log("loading status:", getLoadingButton)
-
   }
   async function updateUsername(value) {
     setUsername(value);
@@ -269,26 +314,15 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
     }
   }
 
-  const [seenOnce, setOnce] = useState(false);
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('REGULAR');
-  const [sendSubmit, shouldSubmit] = useState(false);
   const [qrURL, setQrURL] = useState('');
-  if (seenOnce == false) {
-    document.addEventListener('keyup', ({ key }) => {
-      if (key == 'Enter') {
-        shouldSubmit(true);
-      }
-    });
-    setOnce(true);
-  }
-
-  if (sendSubmit) {
-    onSubmit();
-    shouldSubmit(false);
-  }
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    if (loginMethod !== 'QR') {
+      submitLogin();
+    }
   }
 
   /* useEffect(() => {
@@ -320,10 +354,8 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
           handleSuccess(
             responseStatus.returnPackage as LoginCommandReturnPackage,
             dispatch,
-            currentState,
+            currentState
           );
-          setLoadingButton(false);
-          navigate('/stats');
         } else {
           handleError();
         }
@@ -339,7 +371,7 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
       <SteamCloseModal
         open={closeSteamOpen}
         setOpen={setCloseSteamOpen}
-        loginWithouClosingSteam={() => onSubmit()}
+        loginWithouClosingSteam={() => submitLogin()}
         setLoadingButton={setLoadingButton}
       />
       <ConfirmModal
@@ -347,37 +379,50 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
         setOpen={setOpen}
         setLoadingButton={setLoadingButton}
       />
-      <div className="min-h-full flex items-center  pt-32 justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full">
-          <div>
-            <SteamLogo />
-            <LoginTabs
-              selectedTab={loginMethod}
-              setSelectedTab={setLoginMethod}
-            />
-            <h2 className="mt-6 text-center dark:text-dark-white text-3xl font-extrabold text-gray-900">
+      <div className="flex w-full items-center justify-center px-2 py-8">
+        <div className="foil-border noise-texture relative w-full max-w-[420px] rounded-[16px] p-10 shadow-login-card">
+          {/* Logo mark + title */}
+          <div className="mb-8 flex flex-col items-center">
+            <div className="mb-3 flex h-[52px] w-[52px] items-center justify-center rounded-[14px] bg-gradient-to-br from-[#FFD700] via-[#A855F7] to-[#38BDF8] shadow-foil">
+              <span className="text-[22px] font-black text-black select-none">
+                C
+              </span>
+            </div>
+            <h2 className="text-[22px] font-bold text-[var(--text-primary)]">
               {loginMethod === 'REGULAR'
-                ? 'Connect to Steam'
+                ? '登录 Steam'
                 : loginMethod === 'QR'
-                  ? 'Scan QR Code'
-                  : 'Connect from browser'}
+                ? '扫描二维码'
+                : '通过浏览器登录'}
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="mt-1 text-center text-sm text-[var(--text-secondary)]">
               {loginMethod === 'REGULAR'
-                ? 'The application needs to have an active Steam connection to manage your CSGO items. You should not have any games open on the Steam account.'
+                ? '管理你的 CS2 库存与储存组件'
                 : loginMethod === 'QR'
-                  ? 'Scan the QR code with your Steam mobile app. You should be logged into the account you wish to connect Casemove with.'
-                  : 'Open the URL by clicking on the button, or by copying it to the clipboard. You should be logged into the account you wish to connect Casemove with. Paste the entire string below.'}
+                ? '使用 Steam 手机应用扫描二维码登录'
+                : '通过浏览器 WebToken 登录 Steam 账号'}
             </p>
+            <div className="mt-5 w-full">
+              <LoginTabs
+                selectedTab={loginMethod}
+                setSelectedTab={setLoginMethod}
+              />
+            </div>
           </div>
 
-          <form className="mt-8 mb-6" onSubmit={(e) => handleSubmit(e)}>
+          <form
+            className="flex flex-col gap-[14px]"
+            onSubmit={(e) => handleSubmit(e)}
+          >
             <input type="hidden" name="remember" defaultValue="true" />
             {loginMethod === 'REGULAR' ? (
-              <div className="rounded-md mb-6">
+              <div className="flex flex-col gap-[14px]">
                 <div>
-                  <label htmlFor="email-address" className="sr-only">
-                    Username
+                  <label
+                    htmlFor="username"
+                    className="mb-[6px] block text-[12px] font-medium text-[var(--text-secondary)]"
+                  >
+                    用户名
                   </label>
                   <input
                     id="username"
@@ -386,14 +431,17 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
                     spellCheck={false}
                     required
                     value={isLock == '' ? username : isLock}
-                    className="appearance-none dark:bg-dark-level-one dark:text-dark-white dark:bg-dark-level-one  dark:border-opacity-50 rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                    placeholder="Username"
+                    className="foil-input"
+                    placeholder="Steam 用户名..."
                   />
                 </div>
                 {!hasChosenAccountLoginKey ? (
                   <div>
-                    <label htmlFor="password" className="sr-only">
-                      Password
+                    <label
+                      htmlFor="password"
+                      className="mb-[6px] block text-[12px] font-medium text-[var(--text-secondary)]"
+                    >
+                      密码
                     </label>
                     <input
                       id="password"
@@ -404,17 +452,21 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
                       autoComplete="current-password"
                       required
                       value={isLock == '' ? password : '~{nA?HJjb]7hB7-'}
-                      className="appearance-none dark:text-dark-white rounded-none dark:bg-dark-level-one  dark:border-opacity-50 relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900  focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                      placeholder="Password"
+                      className="foil-input"
+                      placeholder="Steam 密码..."
                     />
                   </div>
-                ) : (
-                  ''
-                )}
+                ) : null}
                 {!hasChosenAccountLoginKey ? (
                   <div>
-                    <label htmlFor="authcode" className="sr-only">
-                      Steam Guard
+                    <label
+                      htmlFor="authcode"
+                      className="mb-[6px] block text-[12px] font-medium text-[var(--text-secondary)]"
+                    >
+                      Steam 令牌码{' '}
+                      <span className="text-[var(--text-tertiary)]">
+                        （可选）
+                      </span>
                     </label>
                     <input
                       id="authcode"
@@ -422,24 +474,25 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
                       value={authCode}
                       onChange={(e) => setAuthCode(e.target.value)}
                       spellCheck={false}
-                      required
-                      className="appearance-none rounded-none dark:bg-dark-level-one dark:text-dark-white dark:border-opacity-50 relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                      placeholder="Authcode (optional)"
+                      className="foil-input"
+                      placeholder="令牌码..."
                     />
                   </div>
                 ) : (
-                  <div className="pt-1 flex items-center">
-                    <LockClosedIcon className="h-4 mr-1 w-4 dark:text-gray-500" />
-                    <span className="dark:text-gray-500 sm:text-sm mt-0.5 ">
-                      Password and Steam Guard code not required
+                  <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-level-two)] px-3 py-2.5">
+                    <LockClosedIcon className="h-4 w-4 flex-shrink-0 text-[var(--text-tertiary)]" />
+                    <span className="text-sm text-[var(--text-tertiary)]">
+                      无需输入密码和 Steam 令牌代码
                     </span>
                   </div>
                 )}
-
-                {!hasChosenAccountLoginKey ? (
-                  <div className={classNames(secretEnabled ? '' : 'hidden')}>
-                    <label htmlFor="secret" className="sr-only">
-                      SharedSecret
+                {!hasChosenAccountLoginKey && secretEnabled ? (
+                  <div>
+                    <label
+                      htmlFor="secret"
+                      className="mb-[6px] block text-[12px] font-medium text-[var(--text-secondary)]"
+                    >
+                      共享密钥 SharedSecret
                     </label>
                     <input
                       id="secret"
@@ -447,22 +500,22 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
                       value={sharedSecret}
                       onChange={(e) => setSharedSecret(e.target.value)}
                       spellCheck={false}
-                      required
-                      className="appearance-none rounded-none dark:bg-dark-level-one dark:text-dark-white dark:border-opacity-50 relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                      placeholder="Shared Secret (If you don't know what this is, leave it empty.)"
+                      className="foil-input"
+                      placeholder="SharedSecret（不知道是什么请留空）"
                     />
                   </div>
-                ) : (
-                  ''
-                )}
+                ) : null}
               </div>
             ) : loginMethod === 'WEBTOKEN' ? (
-              <div className="rounded-md mb-6">
-                <div className="mt-1 flex rounded-md shadow-sm">
-                  <div className="relative flex items-stretch grow focus-within:z-10">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <div>
+                <label className="mb-[6px] block text-[12px] font-medium text-[var(--text-secondary)]">
+                  浏览器 WebToken 数据
+                </label>
+                <div className="flex rounded-lg overflow-hidden border border-[var(--border-default)]">
+                  <div className="relative flex flex-grow items-stretch">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                       <ClipboardCheckIcon
-                        className="h-5 w-5 text-gray-400"
+                        className="h-5 w-5 text-[var(--text-tertiary)]"
                         aria-hidden="true"
                       />
                     </div>
@@ -473,40 +526,34 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
                       id="clientjs"
                       value={clientjstoken}
                       onChange={(e) => setClientjstoken(e.target.value)}
-                      className="bg-dark-level-one focus:border-green-500 block w-full rounded-none rounded-l-md pl-10 sm:text-sm border border-gray-300 border-opacity-50 focus:outline-none text-dark-white "
-                      placeholder="Paste data"
+                      className="block w-full border-0 bg-[var(--bg-level-two)] pl-10 pr-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
+                      placeholder="粘贴数据"
                     />
                   </div>
-                  <button
-                    onClick={() =>
-                      navigator.clipboard.writeText(
-                        `https://steamcommunity.com/chat/clientjstoken`,
-                      )
-                    }
-                    type="button"
-                    className="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 border-opacity-50 text-sm font-medium text-gray-700 bg-dark-level-two hover:bg-dark-level-three focus:outline-none focus:border-green-500  "
-                  >
-                    <ClipboardCopyIcon
-                      className="h-5 w-5 text-gray-400"
-                      aria-hidden="true"
-                    />
-                  </button>
+                  {/*<button*/}
+                  {/*  onClick={() =>*/}
+                  {/*    navigator.clipboard.writeText(*/}
+                  {/*      `https://steamcommunity.com/chat/clientjstoken`*/}
+                  {/*    )*/}
+                  {/*  }*/}
+                  {/*  type="button"*/}
+                  {/*  className="border-l border-[var(--border-default)] bg-[var(--bg-level-three)] px-3 py-2 text-[var(--text-secondary)] hover:bg-[var(--bg-level-four)] focus:outline-none transition-colors"*/}
+                  {/*>*/}
+                  {/*  <ClipboardCopyIcon className="h-4 w-4" aria-hidden="true" />*/}
+                  {/*</button>*/}
                   <a
                     href="https://steamcommunity.com/chat/clientjstoken"
                     target="_blank"
-                    className="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 border-opacity-50 text-sm font-medium rounded-r-md text-gray-700 bg-dark-level-two hover:bg-dark-level-three focus:outline-none focus:border-green-500"
+                    rel="noreferrer"
+                    className="flex items-center justify-center border-l border-[var(--border-default)] bg-[var(--bg-level-three)] px-3 py-2 text-[var(--text-secondary)] hover:bg-[var(--bg-level-four)] transition-colors"
                   >
-                    {/* Link content here */}
-                    <ExternalLinkIcon
-                      className="h-5 w-5 text-gray-400"
-                      aria-hidden="true"
-                    />
+                    <ExternalLinkIcon className="h-5 w-5" aria-hidden="true" />
                   </a>
                 </div>
               </div>
             ) : (
               <>
-                <div className="flex justify-center bg-white py-4">
+                <div className="flex justify-center rounded-md bg-white p-4">
                   <QRCode size={235} value={qrURL} viewBox={`0 0 235 235`} />
                 </div>
                 <div className="flex pt-2 items-center">
@@ -515,14 +562,14 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
                     name="remember-me"
                     type="checkbox"
                     defaultChecked={storeRefreshToken}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    className="h-4 w-4 border-[var(--border-default)] rounded bg-[var(--bg-level-two)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                     onChange={() => setStoreRefreshToken(!storeRefreshToken)}
                   />
                   <label
                     htmlFor="remember-me"
-                    className="ml-2 block pl-1 text-sm text-gray-900 dark:text-dark-white"
+                    className="ml-2 block pl-1 text-sm text-[var(--text-secondary)]"
                   >
-                    Remember for later
+                    记住登录
                   </label>
                 </div>
               </>
@@ -531,7 +578,7 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
               <div
                 className={classNames(
                   loginMethod === 'REGULAR' ? '' : 'hidden',
-                  'flex items-center justify-between',
+                  'flex items-center justify-between'
                 )}
               >
                 <div className="flex items-center">
@@ -541,7 +588,7 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
                       name="remember-me"
                       type="checkbox"
                       defaultChecked={storeRefreshToken}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      className="h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-level-two)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                       onChange={() => setStoreRefreshToken(!storeRefreshToken)}
                     />
                   ) : !hasChosenAccountLoginKey ? (
@@ -550,7 +597,7 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
                       name="remember-me"
                       type="checkbox"
                       checked={true}
-                      className=" pointer-events-none h-4 w-4 text-indigo-600 focus:ring-indigo-500 dark:text-opacity-50 border-gray-300 rounded"
+                      className="pointer-events-none h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-level-two)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] opacity-50"
                       onChange={() => setStoreRefreshToken(!storeRefreshToken)}
                     />
                   ) : (
@@ -560,16 +607,16 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
                   {isLock == '' ? (
                     <label
                       htmlFor="remember-me"
-                      className="ml-2 block text-sm text-gray-900 dark:text-dark-white"
+                      className="ml-2 block text-sm text-[var(--text-secondary)]"
                     >
-                      Remember for later
+                      记住登录
                     </label>
                   ) : !hasChosenAccountLoginKey ? (
                     <label
                       htmlFor="remember-me"
-                      className="ml-2 pointer-events-none block text-sm text-gray-900 dark:text-opacity-50 dark:text-dark-white"
+                      className="ml-2 block pointer-events-none text-sm text-[var(--text-tertiary)]"
                     >
-                      Remember for later
+                      记住登录
                     </label>
                   ) : (
                     ''
@@ -579,15 +626,15 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
                   <div className="flex items-center">
                     <label
                       htmlFor="sharedSecret"
-                      className="mr-2 block text-sm text-gray-900 dark:text-dark-white"
+                      className="mr-2 block text-sm text-[var(--text-secondary)]"
                     >
-                      Show secret field
+                      使用秘钥登录
                     </label>
                     <input
                       id="sharedSecret"
                       name="sharedSecret"
                       type="checkbox"
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      className="h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-level-two)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                       onChange={() => setSecretEnabled(!secretEnabled)}
                     />
                   </div>
@@ -599,25 +646,21 @@ export default function LoginForm({ isLock, replaceLock, runDeleteUser }) {
               ''
             )}
             {loginMethod !== 'QR' ? (
-              <div className="flex justify-between mt-6">
-                <button
-                  className="focus:bg-indigo-700 group relative w-full flex justify-center py-2 px-4 ml-3 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 "
-                  onClick={() => onSubmit()}
-                  type="button"
-                >
-                  <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                    {getLoadingButton ? (
-                      <LoadingButton />
-                    ) : (
-                      <LockClosedIcon
-                        className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </span>
-                  Sign in
-                </button>
-              </div>
+              <button
+                className="foil-sweep group relative mt-1 flex w-full items-center justify-center gap-[6px] rounded-[8px] border-0 bg-gradient-to-r from-[#FFD700] via-[#A855F7] to-[#38BDF8] px-6 py-[11px] text-[13px] font-semibold text-black shadow-foil transition hover:brightness-[1.08] active:translate-y-px"
+                onClick={() => submitLogin()}
+                type="button"
+              >
+                {getLoadingButton ? (
+                  <LoadingButton />
+                ) : (
+                  <LockClosedIcon
+                    className="h-4 w-4 text-black/60"
+                    aria-hidden="true"
+                  />
+                )}
+                登录
+              </button>
             ) : null}
           </form>
         </div>

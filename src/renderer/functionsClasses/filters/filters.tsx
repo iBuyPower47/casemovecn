@@ -1,25 +1,27 @@
-import { itemSubCategories } from '../../../renderer/components/content/shared/categories';
+import { itemSubCategories } from 'renderer/components/content/shared/categories';
 import {
   ClassOptionFilter,
   Filter,
   FilterRequirement,
   Filters,
   FiltersRequirement,
-} from '../../../renderer/interfaces/filters';
-import { ItemRow } from '../../../renderer/interfaces/items';
+} from 'renderer/interfaces/filters';
+import { ItemRow } from 'renderer/interfaces/items';
 import _ from 'lodash';
 
 export class FilterManager {
   filters: Filters = {};
 
-  addFilter(keyToAddUnder: string, filterObject: FilterRequirement, include: boolean): void {
-
+  addFilter(
+    keyToAddUnder: string,
+    filterObject: FilterRequirement,
+    include: boolean
+  ): void {
     let finalFilter: Filter = {
       ...filterObject,
       include: include,
     };
     if (this.filters?.[keyToAddUnder] != undefined) {
-
       let oldArray = this.filters[keyToAddUnder];
       oldArray.push(finalFilter);
       this.filters[keyToAddUnder] = oldArray;
@@ -81,54 +83,59 @@ export class FilterManager {
 
 export const characteristics: ClassOptionFilter = {
   activeTradehold: {
-    label: 'Active tradehold',
+    label: '交易冷却中',
     valueToCheck: 'trade_unlock',
     commandType: 'checkBooleanVariable',
   },
   customName: {
-    label: 'Custom name',
+    label: '自定义名称',
     valueToCheck: 'item_customname',
     commandType: 'checkBooleanVariable',
   },
   stickersPatches: {
-    label: 'Stickers/Patches applied',
+    label: '已贴贴纸/布章',
     valueToCheck: 'item_has_stickers',
     commandType: 'checkBooleanVariable',
   },
+  keychain: {
+    label: '已挂挂件/挂件',
+    valueToCheck: 'item_has_keychain',
+    commandType: 'checkBooleanVariable',
+  },
   moveable: {
-    label: 'Storage moveable',
+    label: '可存储移动',
     valueToCheck: 'item_moveable',
     commandType: 'checkBooleanVariable',
   },
   CT: {
-    label: 'Equipped CT',
+    label: '已装备 CT',
     valueToCheck: 'equipped_ct',
     commandType: 'checkBooleanVariable',
   },
   T: {
-    label: 'Equipped T',
+    label: '已装备 T',
     valueToCheck: 'equipped_t',
     commandType: 'checkBooleanVariable',
   },
 };
 export const containers: ClassOptionFilter = {
   cases: {
-    label: 'Cases',
+    label: '武器箱',
     valueToCheck: 'Case',
     commandType: 'checkNameAndContainer',
   },
   stickerCapsules: {
-    label: 'Sticker Capsules',
+    label: '贴纸胶囊',
     valueToCheck: 'Capsule',
     commandType: 'checkCapsule',
   },
   patchPacks: {
-    label: 'Patch Packs',
+    label: '布章包',
     valueToCheck: 'Patch',
     commandType: 'checkNameAndContainer',
   },
   pinsCapsule: {
-    label: 'Pins Capsule',
+    label: '胸针胶囊',
     valueToCheck: 'Pins Capsule',
     commandType: 'checkNameAndContainer',
   },

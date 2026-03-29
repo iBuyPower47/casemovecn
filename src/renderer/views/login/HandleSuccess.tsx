@@ -1,13 +1,13 @@
-import combineInventory, { sortDataFunctionTwo } from "../../../renderer/components/content/shared/filters/inventoryFunctions";
-import { filterItemRows } from "../../../renderer/functionsClasses/filters/custom";
-import { DispatchIPC, DispatchStore } from "../../../renderer/functionsClasses/rendererCommands/admin"
-import { State } from "../../../renderer/interfaces/states";
-import { SignInActionPackage } from "../../../renderer/interfaces/store/authReducerActionsInterfaces"
-import { inventorySetFilter } from "../../../renderer/store/actions/filtersInventoryActions";
-import { setInventoryAction } from "../../../renderer/store/inventory/inventoryActions";
-import { signIn } from "../../../renderer/store/actions/userStatsActions";
-import { getURL } from "../../../renderer/store/helpers/userStatusHelper";
-import { LoginCommandReturnPackage } from "../../../shared/Interfaces.tsx/store"
+import combineInventory, { sortDataFunctionTwo } from "renderer/components/content/shared/filters/inventoryFunctions";
+import { filterItemRows } from "renderer/functionsClasses/filters/custom";
+import { DispatchIPC, DispatchStore } from "renderer/functionsClasses/rendererCommands/admin"
+import { State } from "renderer/interfaces/states";
+import { SignInActionPackage } from "renderer/interfaces/store/authReducerActionsInterfaces"
+import { inventorySetFilter } from "renderer/store/actions/filtersInventoryActions";
+import { setInventoryAction } from "renderer/store/inventory/inventoryActions";
+import { signIn } from "renderer/store/actions/userStatsActions";
+import { getURL } from "renderer/store/helpers/userStatusHelper";
+import { LoginCommandReturnPackage } from "shared/Interfaces.tsx/store"
 import { createCSGOImage } from "../../functionsClasses/createCSGOImage";
 async function getProfilePicture(steamID: string): Promise<string> {
   try {
@@ -32,13 +32,23 @@ export async function handleSuccess(returnSuccessPackage: LoginCommandReturnPack
   await new Promise((r) => setTimeout(r, 2500));
 
 
+  const rawInventory = Array.isArray(returnSuccessPackage.csgoInventory)
+    ? returnSuccessPackage.csgoInventory
+    : [];
+
+  const walletToUse = returnSuccessPackage.walletToSend || {
+    hasWallet: false,
+    currency: currentState.settingsReducer.currency,
+    balance: 0,
+  };
+
   // Create a store object
   let signInPackage: SignInActionPackage = {
     userProfilePicture: await getProfilePicture(returnSuccessPackage.steamID),
     displayName: returnSuccessPackage.displayName,
     CSGOConnection: returnSuccessPackage.haveGCSession,
     steamID: returnSuccessPackage.steamID,
-    wallet: returnSuccessPackage.walletToSend
+    wallet: walletToUse
   }
 
   // Get the profile picture
@@ -47,12 +57,12 @@ export async function handleSuccess(returnSuccessPackage: LoginCommandReturnPack
 
   // Inventory
   let combinedInventory = await combineInventory(
-    returnSuccessPackage.csgoInventory,
+    rawInventory,
     currentState.settingsReducer
   )
   dispatch(
     setInventoryAction({
-      inventory: returnSuccessPackage.csgoInventory,
+      inventory: rawInventory,
       combinedInventory
     })
   );

@@ -1,6 +1,6 @@
 
-import { ItemRow, ItemRowStorage } from "../../../renderer/interfaces/items";
-import { Inventory, InventoryFilters, MoveFromReducer, Prices, Settings, State } from "../../../renderer/interfaces/states";
+import { ItemRow, ItemRowStorage } from "renderer/interfaces/items";
+import { State } from "renderer/interfaces/states";
 import { HandleStorageData } from "./storageUnitsClass";
 
 function sorting(valueOne, valueTwo) {
@@ -28,15 +28,11 @@ class Sort {
 
 export async function getAllStorages(
   dispatch: Function,
-  settingsData: Settings,
-  pricesResult: Prices,
-  moveFromReducer: MoveFromReducer,
-  inventory: Inventory,
-  inventoryFiltersReducer: InventoryFilters
+  state: State
 ) {
 
   // Filter the storage inventory
-  const casketResults = await inventory.inventory.filter(function (row) {
+  const casketResults = await state.inventoryReducer.inventory.filter(function (row) {
     if (!row.item_url.includes('casket')) {
       return false; // skip
     }
@@ -44,27 +40,26 @@ export async function getAllStorages(
       return false; // skip
     }
     if (
-     moveFromReducer.searchInputStorage != '' &&
-      !row?.item_customname?.toLowerCase()?.includes(moveFromReducer.searchInputStorage)
+      state.moveFromReducer.searchInputStorage != '' &&
+      !row?.item_customname?.toLowerCase()?.includes(state.moveFromReducer.searchInputStorage)
     ) {
       return false; // skip
     }
-    if (row.item_storage_total == 1000 && moveFromReducer.hideFull) {
+    if (row.item_storage_total == 1000 && state.moveFromReducer.hideFull) {
       return false; // skip
     }
     return true;
   });
 
   async function sendArrayAddStorage(returnValue: Array<any>) {
-    let StorageClass = new HandleStorageData(dispatch, settingsData, pricesResult, moveFromReducer, inventory, inventoryFiltersReducer)
-    let addArray: Array<ItemRow> = []
+    let StorageClass = new HandleStorageData(dispatch, state)
+    let addArray: Array<ItemRowStorage> = []
     for (const [_key, project] of Object.entries(returnValue)) {
-      if (!moveFromReducer.activeStorages.includes(project.item_id)) {
-        addArray = [...addArray, ...await StorageClass.addStorage(
+      if (!state.moveFromReducer.activeStorages.includes(project.item_id)) {
+        addArray = await StorageClass.addStorage(
           project as ItemRowStorage,
           addArray
-
-        )]
+        )
       }
     }
     return

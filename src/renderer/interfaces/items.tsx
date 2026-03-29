@@ -10,10 +10,12 @@ export interface ItemRow {
     item_origin: number
     item_moveable: boolean
     item_has_stickers: boolean
+    item_has_keychain: boolean
     equipped_ct: boolean
     equipped_t: boolean
     def_index: number
     stickers: Array<string>
+    keychain: Array<string>
     rarity: number
     rarityName: string
     tradeUp: boolean

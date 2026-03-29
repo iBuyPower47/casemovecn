@@ -1,14 +1,14 @@
 import { Bar } from 'react-chartjs-2';
 import { useSelector } from 'react-redux';
 import Chart from 'chart.js/auto';
-import { ReducerManager } from '../../../../renderer/functionsClasses/reducerManager';
-import { ItemRow } from '../../../../renderer/interfaces/items';
-import { searchFilter } from '../../../../renderer/functionsClasses/filters/search';
-import { Prices, Settings } from '../../../../renderer/interfaces/states';
+import { ReducerManager } from 'renderer/functionsClasses/reducerManager';
+import { ItemRow } from 'renderer/interfaces/items';
+import { searchFilter } from 'renderer/functionsClasses/filters/search';
+import { Prices, Settings } from 'renderer/interfaces/states';
 import {
   ConvertPrices,
   ConvertPricesFormatted,
-} from '../../../../renderer/functionsClasses/prices';
+} from 'renderer/functionsClasses/prices';
 Chart;
 
 function runArray(
@@ -113,12 +113,15 @@ export default function OverallVolume() {
     settingsData.overview.by,
     PricingConverter
   );
-  const converter = new ConvertPricesFormatted(settingsData, pricingData)
-
+  const converter = new ConvertPricesFormatted(settingsData, pricingData);
 
   const title = (tooltipItems) => {
     if (settingsData.overview.by == 'price') {
-      return tooltipItems.dataset.label + ': ' + converter.formatPrice(tooltipItems.raw);
+      return (
+        tooltipItems.dataset.label +
+        ': ' +
+        converter.formatPrice(tooltipItems.raw)
+      );
     }
     return tooltipItems.dataset.label + ': ' + tooltipItems.raw;
   };
@@ -139,7 +142,7 @@ export default function OverallVolume() {
       },
       title: {
         display: true,
-        text: 'Overall',
+        text: '总览',
         color: '#d6d3cd',
       },
     },
@@ -172,14 +175,14 @@ export default function OverallVolume() {
 
     datasets: [
       {
-        label: 'Inventory',
+        label: '库存',
         data: overallData.map((itemRow) => inventoryData[itemRow[0]]),
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1,
       },
       {
-        label: 'Storage Units',
+        label: '存储单元',
         data: overallData.map((itemRow) => storageData[itemRow[0]]),
         backgroundColor: 'rgb(50, 91, 136, 0.2)',
         borderColor: 'rgb(50, 91, 136, 1)',

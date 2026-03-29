@@ -1,14 +1,7 @@
 import { InventoryFilters } from '../../interfaces/states';
 
 const initialState: InventoryFilters = {
-  inventoryFilter: [
-    {
-      include: true,
-      label: 'Storage moveable',
-      valueToCheck: 'item_moveable',
-      commandType: 'checkBooleanVariable',
-    },
-  ],
+  inventoryFilter: [],
   storageFilter: [],
   sortValue: 'Default',
   inventoryFiltered: [],
@@ -58,7 +51,7 @@ const inventoryFiltersReducer = (state = initialState, action) => {
 
       return {
         ...state,
-        storageFiltered: AddToFiltered
+        storageFiltered: AddToFiltered,
       };
     case 'INVENTORY_STORAGES_SET_SORT_STORAGES':
       return {
@@ -75,7 +68,7 @@ const inventoryFiltersReducer = (state = initialState, action) => {
         ...state,
         categoryFilter: initialState.categoryFilter,
         storageFiltered: initialState.storageFiltered,
-        storageFilter: initialState.storageFilter
+        storageFilter: initialState.storageFilter,
       };
 
     case 'MOVE_FROM_CLEAR_ALL':
@@ -83,37 +76,29 @@ const inventoryFiltersReducer = (state = initialState, action) => {
         ...state,
         categoryFilter: initialState.categoryFilter,
         storageFiltered: initialState.storageFiltered,
-        storageFilter: initialState.storageFilter
+        storageFilter: initialState.storageFilter,
       };
     case 'MOVE_TO_CLEAR_ALL':
       return {
         ...state,
         categoryFilter: initialState.categoryFilter,
-        inventoryFilter: initialState.inventoryFilter
+        inventoryFilter: [],
+        inventoryFiltered: [],
       };
 
     case 'INVENTORY_ADD_CATEGORY_FILTER':
-      let newFilters = state.categoryFilter;
-      if (newFilters.includes(action.payload)) {
-        newFilters.splice(newFilters.indexOf(action.payload), 1);
-      } else {
-        newFilters = [...newFilters, action.payload];
-      }
       return {
         ...state,
-        categoryFilter: newFilters,
+        categoryFilter: state.categoryFilter.includes(action.payload)
+          ? state.categoryFilter.filter((item) => item !== action.payload)
+          : [...state.categoryFilter, action.payload],
       };
     case 'INVENTORY_ADD_RARITY_FILTER':
-      console.log(action.payload);
-      let newRarity = state.rarityFilter;
-      if (newRarity.includes(action.payload)) {
-        newRarity.splice(newRarity.indexOf(action.payload), 1);
-      } else {
-        newRarity = [...newRarity, action.payload];
-      }
       return {
         ...state,
-        rarityFilter: newRarity,
+        rarityFilter: state.rarityFilter.includes(action.payload)
+          ? state.rarityFilter.filter((item) => item !== action.payload)
+          : [...state.rarityFilter, action.payload],
       };
     case 'INVENTORY_FILTERS_SET_SEARCH':
       return {

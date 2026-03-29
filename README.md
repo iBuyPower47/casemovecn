@@ -7,6 +7,81 @@
 ----
 
 
+## 中文维护分支说明
+
+以下内容为 `casemovecn / CaseMoveCn` 分支的新增说明，用于补充原项目 README。原 README 主要描述上游 `Casemove 2.3.3`，而当前仓库已经基于本地维护需求进行了继续升级、修复与汉化。
+
+### 当前分支状态
+
+- 当前应用名称已调整为 `CaseMoveCn`
+- 当前项目版本已提升到 `2.4.0`
+- 发布版本检查已切换到当前仓库 `iBuyPower47/casemovecn`
+- README 中原有英文说明和功能描述仍保留，中文部分以本分支实际改动为准
+
+### 本分支已完成的更新
+
+#### 1. 依赖与运行环境升级
+
+- 将项目核心运行环境升级到较新的 Electron 技术栈，当前使用 `Electron 30.5.1`
+- React 已升级到 `18.3.1`
+- TypeScript 已升级到 `5.4.5`
+- Tailwind CSS 已从原 README 中的 `v2` 升级到 `v3.4.19`
+- React Router 已升级到 `v6`
+- Redux 生态已更新到 `@reduxjs/toolkit 2.x`、`react-redux 9.x`、`redux 5.x`
+- Jest / ts-jest / Testing Library 等开发依赖也已同步到较新的可维护版本
+- `prepare` 脚本已调整为本地安装时跳过自动打包，降低依赖安装阶段失败的概率
+- 新增 `prepare:package` 作为显式打包命令，便于区分“开发启动”和“正式构建”
+
+#### 2. 汉化与本地化更新
+
+- 已对主界面导航、登录页、设置页、库存页、存储单元页面、弹窗、通知等大量前端文案进行中文化处理
+- 默认货币已调整为 `CNY`，更适合中文用户直接使用
+- 项目保留并继续利用 `csgo_schinese` 相关物品翻译数据，同时保留英文翻译回退逻辑
+- 当前仓库的目标是持续推进中文可用性，后续应以 UTF-8 编码统一维护文案，避免个别历史文件出现乱码遗留问题
+
+#### 3. UI 与前端结构重构
+
+- 旧的 `index.html` / `index.css` 结构已替换为新的 `index.ejs` + 样式入口方案
+- 新增 `src/renderer/styles/design-tokens.css`，将主题色、背景层级、边框、文字颜色等抽离为统一设计变量
+- 新增 `src/renderer/components/ui` 目录，补充基础 UI 组件与视觉特效组件，便于后续复用与继续优化
+- 主界面、库存表格、筛选面板、存入/取出页面、登录与设置页面均已做较大规模视觉重构
+- 新增渲染层错误边界 `AppErrorBoundary`，用于在前端崩溃时提供兜底错误展示，提升可维护性
+- Redux 持久化与应用挂载流程已重新整理，提升状态恢复与渲染初始化的稳定性
+
+#### 4. 功能与项目结构调整
+
+- 项目主功能仍然围绕 CS2 库存查看、存储单元物品转移、价格展示、筛选与批量操作展开
+- 自动更新、版本检查、应用标识、包名等已改为当前中文维护分支对应配置
+- 独立 `Trade Up` 页面相关旧目录已从当前导航结构中移除或重整，README 原有这部分功能描述主要代表上游历史设计，不完全等同于本分支当前界面结构
+- 当前导航与页面组织更聚焦于 `总览 / 取出 / 存入 / 库存 / 设置` 这些核心功能
+
+### 当前建议的开发与构建方式
+
+#### 本地开发
+
+```bash
+npm install
+npm run start
+```
+
+如果安装阶段仍遇到原项目依赖链问题，可优先确认：
+
+- Node.js 版本是否与 Electron 生态兼容
+- 原生依赖是否已正确重建
+- Steam / Global Offensive 相关依赖是否已正常拉取
+
+#### 本地打包
+
+```bash
+npm run prepare:package
+```
+
+Windows 签名相关说明仍可参考下方原 README 的 `dev comments`。如果只是本地开发调试，通常不需要先完成签名流程。
+
+### 说明
+
+本 README 当前采用“保留原文 + 追加中文维护说明”的方式维护，便于同时对照上游项目描述与当前中文分支的实际状态。如果后续继续升级依赖、修正文案乱码、补充中文截图或发布新的安装包，建议在本节继续追加版本记录。
+
 ## dev comments
 
 installation is a bit buggy for me but npm install fails but somehov npm run start and npm run prepare work

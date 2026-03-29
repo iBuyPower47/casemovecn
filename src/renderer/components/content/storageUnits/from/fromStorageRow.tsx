@@ -1,6 +1,6 @@
-import { LightningBoltIcon, XIcon } from '@heroicons/react/solid';
+import { CheckIcon, XIcon } from '@heroicons/react/solid';
 import { useDispatch, useSelector } from 'react-redux';
-import { moveFromAddRemove } from '../../../../../renderer/store/actions/moveFromActions';
+import { moveFromAddRemove } from 'renderer/store/actions/moveFromActions';
 import { RowPrice } from '../../Inventory/inventoryRows/priceRow';
 import { RowStickersPatches } from '../../Inventory/inventoryRows/stickerPatchesRow';
 import { RowStorage } from '../../Inventory/inventoryRows/storageRow';
@@ -11,16 +11,15 @@ import { RowTradehold } from '../../Inventory/inventoryRows/tradeholdRow';
 import { RowQTY } from '../../Inventory/inventoryRows/QTYRow';
 import { RowCollections } from '../../Inventory/inventoryRows/collectionsRow';
 import { RowProduct } from '../../Inventory/inventoryRows/rowName';
-import { ReducerManager } from '../../../../../renderer/functionsClasses/reducerManager';
-import { State } from '../../../../../renderer/interfaces/states';
+import { ReducerManager } from 'renderer/functionsClasses/reducerManager';
+import { State } from 'renderer/interfaces/states';
 
 function content({ projectRow, index }) {
   const dispatch = useDispatch();
-  const ReducerClass = new ReducerManager(useSelector)
-  const fromReducer = ReducerClass.getStorage('moveFromReducer');
-  const inventory = ReducerClass.getStorage('inventoryReducer');
-  const settingsReducer = ReducerClass.getStorage('settingsReducer');
-  const pricingReducer = ReducerClass.getStorage('pricingReducer');
+  const ReducerClass = new ReducerManager(useSelector);
+  const currentState: State = ReducerClass.getStorage();
+  const fromReducer = currentState.moveFromReducer;
+  const inventory = currentState.inventoryReducer;
 
   async function returnField(fieldValue) {
     fieldValue = parseInt(fieldValue);
@@ -64,7 +63,6 @@ function content({ projectRow, index }) {
     );
   }
 
-
   const isEmpty =
     fromReducer.totalToMove.filter((row) => row[0] == projectRow.item_id)
       .length == 0;
@@ -78,18 +76,39 @@ function content({ projectRow, index }) {
 
   return (
     <>
-
       <RowProduct itemRow={projectRow} />
-      <RowCollections itemRow={projectRow} settingsData={settingsReducer} />
-      <RowPrice itemRow={projectRow} settingsData={settingsReducer} pricesReducer={pricingReducer} />
-      <RowStickersPatches itemRow={projectRow} settingsData={settingsReducer} />
-      <RowFloat itemRow={projectRow} settingsData={settingsReducer} />
-      <RowRarity itemRow={projectRow} settingsData={settingsReducer} />
-      <RowStorage itemRow={projectRow} settingsData={settingsReducer} />
-      <RowTradehold itemRow={projectRow} settingsData={settingsReducer} />
-      <RowQTY itemRow={projectRow}/>
+      <RowCollections
+        itemRow={projectRow}
+        settingsData={currentState.settingsReducer}
+      />
+      <RowPrice
+        itemRow={projectRow}
+        settingsData={currentState.settingsReducer}
+        pricesReducer={currentState.pricingReducer}
+      />
+      <RowStickersPatches
+        itemRow={projectRow}
+        settingsData={currentState.settingsReducer}
+      />
+      <RowFloat
+        itemRow={projectRow}
+        settingsData={currentState.settingsReducer}
+      />
+      <RowRarity
+        itemRow={projectRow}
+        settingsData={currentState.settingsReducer}
+      />
+      <RowStorage
+        itemRow={projectRow}
+        settingsData={currentState.settingsReducer}
+      />
+      <RowTradehold
+        itemRow={projectRow}
+        settingsData={currentState.settingsReducer}
+      />
+      <RowQTY itemRow={projectRow} />
 
-      <td className="table-cell px-6 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hover:text-gray-200 text-right">
+      <td className="table-cell px-6 py-3 whitespace-nowrap text-sm text-[var(--text-secondary)] text-right">
         <div className="flex justify-center rounded-full drop-shadow-lg">
           <div>
             <input
@@ -100,15 +119,16 @@ function content({ projectRow, index }) {
               value={isEmpty ? '' : totalFieldValue}
               placeholder="0"
               onChange={(e) => returnField(e.target.value)}
-              className=" block w-full border rounded sm:text-sm text-gray-500 text-center border-gray-400 dark:bg-dark-level-two dark:text-dark-white"
+              className="block w-full border rounded sm:text-sm text-[var(--text-primary)] text-center border-[var(--border-default)] bg-[var(--bg-level-two)]"
             />
           </div>
         </div>
       </td>
-      <td className="table-cell px-6 py-3 text-sm text-gray-500 dark:text-gray-400 font-medium">
+      <td className="table-cell px-6 py-3 text-sm text-[var(--text-secondary)] font-medium">
         <div className="flex justify-center">
           <button
             onClick={() => returnField(1000)}
+            title="选择"
             id={`fire-${index}`}
             className={classNames(
               1000 -
@@ -119,10 +139,10 @@ function content({ projectRow, index }) {
                 : `fireButton`
             )}
           >
-            <LightningBoltIcon
+            <CheckIcon
               className={classNames(
                 isEmpty ? 'h-5 w-5' : 'h-4 w-4',
-                'text-gray-400 dark:text-gray-500 hover:text-yellow-400 dark:hover:text-yellow-400'
+                'text-[var(--text-tertiary)] hover:text-[var(--warning)]'
               )}
               aria-hidden="true"
             />
@@ -131,6 +151,7 @@ function content({ projectRow, index }) {
         <div className="flex justify-center">
           <button
             onClick={() => returnField(0)}
+            title="取消"
             className={classNames(
               isEmpty ? 'pointer-events-none hidden' : 'removeXButton'
             )}
@@ -144,7 +165,7 @@ function content({ projectRow, index }) {
                   0 || totalFieldValue == projectRow.combined_QTY
                   ? 'h-5 w-5'
                   : 'h-4 w-4',
-                'text-gray-400 dark:text-gray-500 hover:text-red-400 dark:hover:text-red-400  '
+                'text-[var(--text-tertiary)] hover:text-[var(--error)]'
               )}
               aria-hidden="true"
             />

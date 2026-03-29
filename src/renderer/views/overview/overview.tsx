@@ -1,6 +1,5 @@
 
 import { useSelector } from 'react-redux';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import RunOverview from './runOverview';
 
 function OverviewContent() {
@@ -34,21 +33,12 @@ function OverviewContent() {
     <>
       <div>
         <div className="">
-          <div
-            className="h-screen"
-          >
           <RunOverview />
-
-          </div>
         </div>
       </div>
     </>
   );
 }
 export default function OverviewPage() {
-  return (
-    <Routes>
-      <Route path="*" element={<OverviewContent />} />
-    </Routes>
-  );
+  return <OverviewContent />;
 }

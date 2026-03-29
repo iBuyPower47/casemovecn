@@ -1,16 +1,19 @@
 import { CheckIcon, TrashIcon } from '@heroicons/react/solid';
-import { useState } from 'react';
-import { classNames } from '../../../renderer/components/content/shared/filters/inventoryFunctions';
+import { useEffect, useState } from 'react';
+import { classNames } from 'renderer/components/content/shared/filters/inventoryFunctions';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
-export default function UserGrid({ clickOnProfile, deleteUser,  runDeleteUser }) {
-  const [hasRun, setHasRun] = useState(false);
+export default function UserGrid({
+  clickOnProfile,
+  deleteUser,
+  runDeleteUser,
+}) {
   const [getUsers, setUsers] = useState([] as any);
 
   // The brain
   async function updateFunction() {
     let finalList = [] as any;
-    let seenValues = [] as any
+    let seenValues = [] as any;
 
     // Get the account details
     let doUpdate = await window.electron.ipcRenderer.getAccountDetails();
@@ -21,14 +24,14 @@ export default function UserGrid({ clickOnProfile, deleteUser,  runDeleteUser })
     // Get the order of the account details
     let valueToUse = [] as any;
     await window.electron.store.get('accountKeyList').then((returnValue) => {
-      valueToUse = returnValue
+      valueToUse = returnValue;
     });
 
     // Conditional logic
     if (valueToUse != undefined) {
-      valueToUse.forEach(element => {
+      valueToUse.forEach((element) => {
         if (seenValues.includes(element) == false) {
-          seenValues.push(element)
+          seenValues.push(element);
         }
       });
       for (const [key, value] of Object.entries(doUpdate)) {
@@ -38,14 +41,13 @@ export default function UserGrid({ clickOnProfile, deleteUser,  runDeleteUser })
           finalList.push(userObject);
         }
       }
-      seenValues.reverse()
-      seenValues.forEach(element => {
+      seenValues.reverse();
+      seenValues.forEach((element) => {
         if (doUpdate[element] != undefined) {
           let userObject = doUpdate[element] as any;
           userObject['username'] = element;
-          finalList.splice(0, 0, userObject)
+          finalList.splice(0, 0, userObject);
         }
-
       });
     } else {
       for (const [key, value] of Object.entries(doUpdate)) {
@@ -55,24 +57,27 @@ export default function UserGrid({ clickOnProfile, deleteUser,  runDeleteUser })
       }
     }
     // Apply the account details
-    setUsers(finalList)
+    setUsers(finalList);
+  }
 
-  }
-  // Run brain only once
-  if (hasRun == false) {
+  useEffect(() => {
     updateFunction();
-    setHasRun(true);
-  }
+  }, []);
 
   // Remove account
   async function removeUsername(username) {
     window.electron.ipcRenderer.deleteAccountDetails(username);
     updateFunction();
   }
-  if (deleteUser) {
-    updateFunction()
-    runDeleteUser()
-  }
+
+  useEffect(() => {
+    if (!deleteUser) {
+      return;
+    }
+
+    updateFunction();
+    runDeleteUser();
+  }, [deleteUser, runDeleteUser]);
 
   // Drag n drop features
   async function handleOnDragEnd(result) {
@@ -81,38 +86,43 @@ export default function UserGrid({ clickOnProfile, deleteUser,  runDeleteUser })
     const items = Array.from(getUsers);
 
     // Store change locally and in the settings
-    window.electron.ipcRenderer.setAccountPosition(result.draggableId, result.destination.index)
+    window.electron.ipcRenderer.setAccountPosition(
+      result.draggableId,
+      result.destination.index
+    );
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
     setUsers(items);
 
     // Storex for next session
     const orderToStore = [] as any;
-    items.forEach(element => {
-      let e = element as any
-      orderToStore.push(e.username)
-
+    items.forEach((element) => {
+      let e = element as any;
+      orderToStore.push(e.username);
     });
-    await window.electron.store.set('accountKeyList', orderToStore)
-
+    await window.electron.store.set('accountKeyList', orderToStore);
   }
 
   return (
-    <div className="overflow-x-auto h-screen-fixed bg-gray-50 dark:bg-dark-level-two">
-      <div className="grid grid-cols-1 py-10 px-4 gap-4 overflow-y-auto">
+    <div className="h-full w-full overflow-hidden">
+      <div className="h-full grid grid-cols-1 gap-5 overflow-y-auto p-6 pb-12">
         <DragDropContext onDragEnd={handleOnDragEnd}>
           <Droppable droppableId="characters">
             {(provided) => (
-              <ul className="characters" {...provided.droppableProps} ref={provided.innerRef}>
+              <ul
+                className="characters"
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+              >
                 {getUsers.length == 0 ? (
                   <li
                     className={classNames(
-                      'relative rounded-lg border border-gray-300 border-dashed dark:bg-dark-level-four bg-white px-6 py-5 flex items-center space-x-3 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"'
+                      'relative flex items-center space-x-3 rounded-lg border border-dashed border-[var(--border-default)] bg-[var(--bg-level-three)] px-6 py-5 text-[var(--text-primary)]'
                     )}
                   >
-                    <div className="shrink-0">
+                    <div className="flex-shrink-0">
                       <svg
-                        className="w-10 h-10 rounded-full shrink-0 text-gray-300"
+                        className="w-10 h-10 rounded-full flex-shrink-0 text-[var(--text-tertiary)]"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >
@@ -120,11 +130,11 @@ export default function UserGrid({ clickOnProfile, deleteUser,  runDeleteUser })
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-dark-white">
-                        Nothing here
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        暂无账户
                       </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                        Login to add user
+                      <p className="truncate text-sm text-[var(--text-tertiary)]">
+                        登录以添加用户
                       </p>
                     </div>
                   </li>
@@ -136,47 +146,88 @@ export default function UserGrid({ clickOnProfile, deleteUser,  runDeleteUser })
                       index={index}
                     >
                       {(provided) => (
-                      <li
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className={classNames(
-                          index == 0 ? '' : 'mt-5',
-                          'relative rounded-lg border dark:border-opacity-0 dark:border-none dark:bg-dark-level-four border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"'
-                        )}
-                      >
-                        <div className="shrink-0">
-                          <img
-                            className="h-10 w-10 rounded-full"
-                            src={person.imageURL}
-                            alt=""
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-dark-white">
-                            {person.displayName}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                            {person.username}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => clickOnProfile([person.username, person.refreshToken])}
-                          className="inline-flex items-center dark:text-dark-white p-1 border border-transparent rounded-full hover:shadow-sm text-black hover:bg-gray-50 transition duration-500 ease-in-out hover:text-white hover:bg-green-600 transform hover:-translate-y-1 hover:scale-110"
-                        >
-                          <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeUsername(person.username)}
+                        <li
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
                           className={classNames(
-                            'inline-flex items-center p-1 border border-transparent rounded-full dark:text-dark-white hover:shadow-sm text-black hover:bg-gray-50 transition duration-500 ease-in-out hover:text-white hover:bg-red-600 transform hover:-translate-y-1 hover:scale-110'
+                            index == 0 ? '' : 'mt-5',
+                            'relative flex items-center space-x-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-level-three)] px-6 py-5 text-[var(--text-primary)] transition hover:border-[var(--border-hover)] hover:bg-[var(--bg-level-four)]'
                           )}
                         >
-                          <TrashIcon className="h-5 w-5" aria-hidden="true" />
-                        </button>
-                      </li>
+                          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-[var(--bg-level-four)] flex items-center justify-center overflow-hidden">
+                            {person.imageURL ? (
+                              <img
+                                className="h-full w-full rounded-full object-cover"
+                                src={person.imageURL}
+                                alt=""
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display =
+                                    'none';
+                                  (
+                                    e.target as HTMLImageElement
+                                  ).parentElement!.setAttribute(
+                                    'data-fallback',
+                                    'true'
+                                  );
+                                }}
+                              />
+                            ) : null}
+                            <span
+                              className="text-xs font-medium text-[var(--text-secondary)] select-none"
+                              style={{
+                                display: person.imageURL ? 'none' : 'block',
+                              }}
+                            >
+                              {(person.displayName || person.username || '?')
+                                .charAt(0)
+                                .toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className="truncate text-sm font-medium text-[var(--text-primary)]"
+                              title={person.displayName}
+                            >
+                              {person.displayName}
+                            </p>
+                            <p
+                              className="truncate text-sm text-[var(--text-tertiary)]"
+                              title={person.username}
+                            >
+                              {person.username}
+                            </p>
+                          </div>
+                          <div className="ml-auto flex shrink-0 items-center">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                clickOnProfile([
+                                  person.username,
+                                  person.refreshToken,
+                                ])
+                              }
+                              className="inline-flex items-center rounded-full p-1.5 text-[var(--text-secondary)] transition duration-200 ease-in-out hover:bg-[var(--bg-level-four)] hover:text-[var(--warning)]"
+                            >
+                              <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeUsername(person.username)}
+                              className={classNames(
+                                'inline-flex items-center rounded-full p-1.5 text-[var(--text-secondary)] transition duration-200 ease-in-out hover:bg-[var(--bg-level-four)] hover:text-[var(--error)]'
+                              )}
+                            >
+                              <TrashIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </div>
+                        </li>
                       )}
                     </Draggable>
                   ))

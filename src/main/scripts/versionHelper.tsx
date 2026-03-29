@@ -5,7 +5,7 @@ import { GithubResponse } from '../../main/interfaces/mainInterfaces';
 export async function getGithubVersion(platform: string): Promise<GithubResponse> {
   return new Promise((resolve) => {
     axios
-      .get('https://api.github.com/repos/AaronTaga/casemove/releases')
+      .get('https://api.github.com/repos/iBuyPower47/casemovecn/releases')
       .then((response) => {
         const responseData: JSON = response.data;
 

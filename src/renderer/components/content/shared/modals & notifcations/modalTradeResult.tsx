@@ -1,8 +1,8 @@
 import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setTradeMoveResult } from '../../../../../renderer/store/actions/modalTrade';
-import { tradeUpResetPossible } from '../../../../../renderer/store/actions/tradeUpActions';
+import { setTradeMoveResult } from 'renderer/store/actions/modalTrade';
+import { tradeUpResetPossible } from 'renderer/store/actions/tradeUpActions';
 import { createCSGOImage } from '../../../../functionsClasses/createCSGOImage';
 
 export default function TradeResultModal() {
@@ -34,7 +34,7 @@ export default function TradeResultModal() {
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <Dialog.Panel className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-opacity-85 transition-opacity" />
+            <Dialog.Overlay className="fixed inset-0 bg-black/88 transition-opacity" />
           </Transition.Child>
 
           {/* This element is to trick the browser into centering the modal contents. */}
@@ -53,22 +53,21 @@ export default function TradeResultModal() {
             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
-            <div className="inline-block align-bottom dark:bg-dark-level-two bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div className="inline-block align-bottom foil-border noise-texture rounded-xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-modal-foil transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <div>
                 <div className='flex items-center justify-center'>
               <img
-                          className="max-w-none h-16 w-16 dark:from-gray-300 dark:to-gray-400 rounded-full ring-2 ring-transparent object-cover bg-linear-to-t from-gray-100 to-gray-300"
+                          className="max-w-none h-16 w-16 rounded-full ring-2 ring-[var(--border-default)] object-cover bg-[var(--bg-level-three)]"
                           src={
                             createCSGOImage(modalData.rowToMatch?.item_url)
                           }
                         /></div>
                 <div className="mt-3 text-center sm:mt-5">
-                  <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900 dark:text-dark-white
-                  ">
+                  <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-[var(--text-primary)]">
                     {modalData.rowToMatch.item_name}
                   </Dialog.Title>
-                  <div className="mt-2 text-gray-400 dark:text-gray-400 text-lg">
-                   Trade Up Contract Reward
+                  <div className="mt-2 text-[var(--text-secondary)] text-lg">
+                   汰换合同奖励
                   </div>
                 </div>
               </div>
@@ -76,10 +75,10 @@ export default function TradeResultModal() {
               <div className="mt-5 sm:mt-6">
                 <button
                   type="button"
-                  className="dark:bg-dark-level-two dark:text-dark-white mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:col-start-1 sm:text-sm"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-[var(--border-default)] shadow-sm px-4 py-2 bg-[var(--bg-level-two)] text-base font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-level-three)] hover:text-[var(--text-primary)] transition-colors duration-150 sm:mt-0 sm:col-start-1 sm:text-sm"
                   onClick={() => setDone()}
                 >
-                  Done
+                  完成
                 </button>
               </div>
               </div>

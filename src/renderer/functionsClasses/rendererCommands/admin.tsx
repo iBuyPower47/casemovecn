@@ -2,19 +2,23 @@ import {
   setColumns,
   setCurrencyRate,
   setCurrencyValue,
-  setDevmode,
+  setSourceValue,
   setFastMove,
+  setDevmode,
   setLocale,
   setOS,
-  setSourceValue,
   setSteamLoginShow,
-} from '../../../renderer/store/actions/settings';
+  setThemeMode,
+  setThemeEffects,
+  setThemeCheckpoint,
+  setThemeParticlesEnabled,
+} from 'renderer/store/actions/settings';
 import {
   DispatchIPCBuildingObject,
   DispatchIPCHandleBuildingOptionsClass,
   DispatchStoreBuildingObject,
   DispatchStoreHandleBuildingOptionsClass,
-} from '../../../shared/Interfaces.tsx/login';
+} from 'shared/Interfaces.tsx/login';
 
 export class IPCCommunication {
   ipc = window.electron.ipcRenderer;
@@ -40,34 +44,50 @@ export class DispatchStore extends IPCCommunication {
       name: 'pricing.source',
       action: setSourceValue,
     },
+    fastmove: {
+      name: 'fastmove',
+      action: setFastMove,
+    },
     locale: {
       name: 'locale',
-      action: setLocale
+      action: setLocale,
     },
     os: {
       name: 'os',
-      action: setOS
+      action: setOS,
     },
     columns: {
       name: 'columns',
-      action: setColumns
+      action: setColumns,
     },
     devmode: {
       name: 'devmode.value',
-      action: setDevmode
-    },
-    fastmove: {
-      name: 'fastmove',
-      action: setFastMove
+      action: setDevmode,
     },
     currency: {
       name: 'currency',
-      action: setCurrencyValue
+      action: setCurrencyValue,
     },
     steamLoginShow: {
       name: 'steamLogin',
-      action: setSteamLoginShow
-    }
+      action: setSteamLoginShow,
+    },
+    themeMode: {
+      name: 'theme.mode',
+      action: setThemeMode,
+    },
+    themeEffects: {
+      name: 'theme.effects',
+      action: setThemeEffects,
+    },
+    themeCheckpoint: {
+      name: 'theme.checkpoint',
+      action: setThemeCheckpoint,
+    },
+    themeParticlesEnabled: {
+      name: 'theme.particlesEnabled',
+      action: setThemeParticlesEnabled,
+    },
   };
   constructor(dispatch: Function) {
     super();

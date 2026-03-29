@@ -1,67 +1,73 @@
 import combineInventory, {
   sortDataFunction,
-} from '../../../renderer/components/content/shared/filters/inventoryFunctions';
-import { ItemRow, ItemRowStorage } from '../../../renderer/interfaces/items';
-import { Inventory, InventoryFilters, MoveFromReducer, Prices, Settings, State } from '../../../renderer/interfaces/states';
-import { inventorySetFilteredStorage } from '../../../renderer/store/actions/filtersInventoryActions';
-import { addStorageInventoryData } from '../../../renderer/store/inventory/inventoryActions';
-import { moveFromAddCasketToStorages } from '../../../renderer/store/actions/moveFromActions';
+} from 'renderer/components/content/shared/filters/inventoryFunctions';
+import { ItemRow, ItemRowStorage } from 'renderer/interfaces/items';
+import { State } from 'renderer/interfaces/states';
+import { inventorySetFilteredStorage } from 'renderer/store/actions/filtersInventoryActions';
+import { addStorageInventoryData } from 'renderer/store/inventory/inventoryActions';
+import { moveFromAddCasketToStorages } from 'renderer/store/actions/moveFromActions';
 import { filterItemRows } from '../filters/custom';
 import { RequestPrices } from '../prices';
 
 export class HandleStorageData {
   dispatch: Function;
-  settingsReducer: Settings;
-  pricingReducer: Prices;
-  moveFromReducer: MoveFromReducer;
-  inventoryReducer: Inventory;
-  inventoryFiltersReducer: InventoryFilters;
-
-  constructor(dispatch: Function, settingsReducer: Settings, pricingReducer: Prices, moveFromReducer: MoveFromReducer, inventoryReducer: Inventory, inventoryFiltersReducer: InventoryFilters) {
+  state: State;
+  constructor(dispatch: Function, state: State) {
     this.dispatch = dispatch;
-    this.settingsReducer = settingsReducer;
-    this.pricingReducer = pricingReducer;
-    this.moveFromReducer = moveFromReducer;
-    this.inventoryReducer = inventoryReducer;
-    this.inventoryFiltersReducer = inventoryFiltersReducer;
+    this.state = state;
   }
 
-  async addStorage(storageRow: ItemRow, addArray: Array<ItemRow> = []) {
+  async addStorage(
+    storageRow: ItemRow,
+    addArray: Array<ItemRowStorage> = [],
+    trackActiveStorage = true
+  ) {
     // Adding the casket ID
-    this.dispatch(moveFromAddCasketToStorages(storageRow.item_id));
+    if (trackActiveStorage) {
+      this.dispatch(moveFromAddCasketToStorages(storageRow.item_id));
+    }
 
     // Fetch the storage unit data
     let storageResult = await this._getStorageUnitData(storageRow);
     const ClassRequest = new RequestPrices(
       this.dispatch,
-      this.settingsReducer,
-      this.pricingReducer
+      this.state.settingsReducer,
+      this.state.pricingReducer
     );
     ClassRequest.handleRequestArray(storageResult.combinedStorages);
-    if (addArray.length == 0) {
-      addArray = this.inventoryReducer.storageInventory
-    }
+
+    const baseStorageRows =
+      addArray.length > 0
+        ? addArray
+        : this.state.inventoryReducer.storageInventory.filter(
+            (item) => item.storage_id != storageRow.item_id
+          );
+    const nextStorageRows = [
+      ...baseStorageRows,
+      ...storageResult.combinedStorages,
+    ];
+
     let filteredStorage = await filterItemRows(
-      [...addArray, ...storageResult.combinedStorages],
-      this.inventoryFiltersReducer.storageFilter
+      nextStorageRows,
+      this.state.inventoryFiltersReducer.storageFilter
     );
     filteredStorage = await sortDataFunction(
-      this.moveFromReducer.sortValue,
+      this.state.moveFromReducer.sortValue,
       filteredStorage,
-      this.pricingReducer.prices,
-      this.settingsReducer?.source?.title
+      this.state.pricingReducer.prices,
+      this.state.settingsReducer?.source?.title
     );
 
-    this.dispatch(inventorySetFilteredStorage(this.inventoryFiltersReducer.storageFilter, filteredStorage))
+    this.dispatch(inventorySetFilteredStorage(this.state.inventoryFiltersReducer.storageFilter, filteredStorage))
     this.dispatch(
       addStorageInventoryData(
         storageResult.rawStorages,
         storageResult.combinedStorages,
         storageRow.item_id,
-        this.moveFromReducer.sortValue
+        this.state.moveFromReducer.sortValue
       )
     );
-    return storageResult.combinedStorages
+    return nextStorageRows
   }
 
   // Get storage unit
@@ -75,17 +81,17 @@ export class HandleStorageData {
 
     let finalReturnData = (await combineInventory(
       returnData,
-      this.settingsReducer,
+      this.state.settingsReducer,
       {
         storage_id: storageRow.item_id,
         storage_name: storageRow.item_customname,
       }
     )) as Array<ItemRowStorage>;
     finalReturnData = await sortDataFunction(
-      this.moveFromReducer.sortValue,
+      this.state.moveFromReducer.sortValue,
       finalReturnData,
-      this.pricingReducer.prices,
-      this.settingsReducer?.source?.title
+      this.state.pricingReducer.prices,
+      this.state.settingsReducer?.source?.title
     );
 
     returnData.forEach((element) => {

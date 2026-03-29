@@ -15,21 +15,21 @@ import { classNames } from '../filters/inventoryFunctions';
 import {
   setTradeConfirm,
   setTradeMove,
-} from '../../../../../renderer/store/actions/modalTrade';
-import { tradeUpAddRemove } from '../../../../../renderer/store/actions/tradeUpActions';
-import { ReducerManager } from '../../../../../renderer/functionsClasses/reducerManager';
-import { State } from '../../../../../renderer/interfaces/states';
-import { moveFromReset } from '../../../../../renderer/store/actions/moveFromActions';
-import { ConvertPricesFormatted } from '../../../../../renderer/functionsClasses/prices';
+} from 'renderer/store/actions/modalTrade';
+import { tradeUpAddRemove } from 'renderer/store/actions/tradeUpActions';
+import { ReducerManager } from 'renderer/functionsClasses/reducerManager';
+import { State } from 'renderer/interfaces/states';
+import { moveFromReset } from 'renderer/store/actions/moveFromActions';
+import { ConvertPricesFormatted } from 'renderer/functionsClasses/prices';
 import { createCSGOImage } from '../../../../functionsClasses/createCSGOImage';
 setTradeConfirm;
 export default function TradeModal() {
-  const reducerManager = new ReducerManager(useSelector);
-  const tradeUpData = reducerManager.getStorage('tradeUpReducer');
-  const settingsData = reducerManager.getStorage('settingsReducer');
-  const modalData = reducerManager.getStorage('modalTradeReducer');
-  const pricesResult = reducerManager.getStorage('pricingReducer');
-  const inventory = reducerManager.getStorage('inventoryReducer');
+  let currentState: State = new ReducerManager(useSelector).getStorage();
+  const tradeUpData = currentState.tradeUpReducer;
+  const settingsData = currentState.settingsReducer;
+  const modalData = currentState.modalTradeReducer;
+  const pricesResult = currentState.pricingReducer;
+  const inventory = currentState.inventoryReducer;
 
   const pricesFormat = new ConvertPricesFormatted(settingsData, pricesResult);
 
@@ -104,7 +104,7 @@ export default function TradeModal() {
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <Dialog.Panel className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-opacity-85 transition-opacity" />
+            <Dialog.Overlay className="fixed inset-0 bg-black/88 transition-opacity" />
           </Transition.Child>
 
           {/* This element is to trick the browser into centering the modal contents. */}
@@ -123,28 +123,25 @@ export default function TradeModal() {
             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
-            <div className="inline-block align-bottom dark:bg-dark-level-two bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div className="inline-block align-bottom foil-border noise-texture rounded-xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-modal-foil transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <div>
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-600">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-[var(--bg-level-three)] border border-[var(--border-default)]">
                   <BeakerIcon
-                    className="h-6 w-6 text-green-600 dark:text-green-900"
+                    className="h-6 w-6 text-[var(--accent-primary)]"
                     aria-hidden="true"
                   />
                 </div>
                 <div className="mt-3 text-center sm:mt-5">
                   <Dialog.Title
                     as="h3"
-                    className="text-lg leading-6 font-medium text-gray-900 dark:text-dark-white
-                  "
+                    className="text-lg leading-6 font-medium text-[var(--text-primary)]"
                   >
-                    Review Trade Up Contract
+                    确认汰换合同
                   </Dialog.Title>
                   <div className="mt-2">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      The following items will be removed from your inventory if
-                      you confirm the contract. Please note that the prices are
-                      based on the 7-day average SCM prices regardless of your
-                      pricing settings.
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      确认合同后，以下物品将从您的库存中移除。请注意，
+                      价格基于 Steam 市场 7 天均价，与您的定价设置无关。
                     </p>
                   </div>
                   <ul role="list" className="mt-3 grid grid-cols-2 gap-2 ">
@@ -158,7 +155,7 @@ export default function TradeModal() {
                             onMouseEnter={() => setActiveHover(project.item_id)}
                             onMouseLeave={() => setActiveHover('')}
                             onMouseOver={() => handleOver(project.item_id)}
-                            className=" from-gray-100 to-gray-300 dark:from-gray-300 dark:to-gray-400 shrink-0 h-full  flex items-center justify-center w-10 dark:border-opacity-50 text-white border-t border-l border-b border-gray-200 rounded-l-md dark:bg-dark-level-two bg-linear-to-t"
+                            className="flex-shrink-0 h-full flex items-center justify-center w-10 border-t border-l border-b border-[var(--border-default)] rounded-l-md bg-[var(--bg-level-three)]"
                           >
                             {project.item_id == activeHover ? (
                               <button
@@ -168,7 +165,7 @@ export default function TradeModal() {
                                 className="w-full absolute justify-items-center h-full flex items-center justify-center z-10 "
                               >
                                 {' '}
-                                <XIcon className="h-4 w-4 text-gray-400" />{' '}
+                                <XIcon className="h-4 w-4 text-[var(--text-secondary)]" />{' '}
                               </button>
                             ) : (
                               <img
@@ -191,20 +188,20 @@ export default function TradeModal() {
                             )}
                           </div>
                         </div>
-                        <div className="flex-1 dark:bg-dark-level-two dark:border-opacity-50 flex items-center justify-between border-t border-r border-b border-gray-200 bg-white rounded-r-md truncate">
+                        <div className="flex-1 bg-[var(--bg-level-two)] flex items-center justify-between border-t border-r border-b border-[var(--border-default)] rounded-r-md truncate">
                           <div className="flex-1 px-4 py-2 text-sm truncate">
                             <div className="flex justify-between">
-                              <span className="text-xs font-light text-gray-600 dark:text-dark-white">
+                              <span className="text-xs font-light text-[var(--text-secondary)]">
                                 {project.item_name} -{' '}
                                 {rarityShort[project.item_wear_name as string]}
                               </span>
                             </div>
 
                             <div className="flex justify-between">
-                              <p className="text-gray-400 dark:text-gray-500">
+                              <p className="text-[var(--text-tertiary)]">
                                 {pricesFormat.getFormattedPrice(project)}
                               </p>
-                              <p className="text-gray-400 dark:text-gray-500">
+                              <p className="text-[var(--text-tertiary)]">
                                 {project.item_paint_wear
                                   ?.toString()
                                   ?.substr(0, 9)}
@@ -224,37 +221,37 @@ export default function TradeModal() {
                     type="button"
                     className={classNames(
                       tradeUpData.tradeUpProducts.length != 10
-                        ? 'pointer-events-none	bg-indigo-300 dark:bg-dark-level-three'
-                        : 'bg-indigo-600',
-                      'bg-indigo-600 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white hover:bg-indigo-700 sm:col-start-2 sm:text-sm'
+                        ? 'pointer-events-none bg-[var(--bg-level-three)] text-[var(--text-disabled)]'
+                        : 'bg-[var(--accent-primary)] text-black hover:opacity-90',
+                      'w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium transition-all duration-150 sm:col-start-2 sm:text-sm'
                     )}
                     onClick={() => confirmContract()}
                   >
-                    Transfer {'&'} confirm
+                    转移并确认
                   </button>
                 ) : (
                   <button
                     type="button"
                     className={classNames(
                       tradeUpData.tradeUpProducts.length != 10
-                        ? 'pointer-events-none	bg-indigo-300 dark:bg-dark-level-three'
-                        : 'bg-indigo-600',
-                      'bg-indigo-600 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white hover:bg-indigo-700 sm:col-start-2 sm:text-sm'
+                        ? 'pointer-events-none bg-[var(--bg-level-three)] text-[var(--text-disabled)]'
+                        : 'bg-[var(--accent-primary)] text-black hover:opacity-90',
+                      'w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium transition-all duration-150 sm:col-start-2 sm:text-sm'
                     )}
                     onClick={() => confirmContract()}
                   >
-                    Confirm contract
+                    确认合同
                   </button>
                 )}
 
                 <button
                   type="button"
                   className={classNames(
-                    'mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 dark:bg-dark-level-two dark:text-dark-white sm:mt-0 sm:col-start-1 sm:text-sm'
+                    'mt-3 w-full inline-flex justify-center rounded-md border border-[var(--border-default)] shadow-sm px-4 py-2 bg-[var(--bg-level-two)] text-base font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-level-three)] hover:text-[var(--text-primary)] transition-colors duration-150 sm:mt-0 sm:col-start-1 sm:text-sm'
                   )}
                   onClick={() => dispatch(setTradeMove())}
                 >
-                  Cancel
+                  取消
                 </button>
               </div>
             </div>

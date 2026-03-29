@@ -6,43 +6,86 @@ import {
   SearchIcon,
   XIcon,
 } from '@heroicons/react/solid';
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { ReducerManager } from '../../../../../renderer/functionsClasses/reducerManager';
-import { HandleStorageData } from '../../../../../renderer/functionsClasses/storageUnits/storageUnitsClass';
-import { getAllStorages } from '../../../../../renderer/functionsClasses/storageUnits/storageUnitsFunctions';
-import { ItemRowStorage } from '../../../../../renderer/interfaces/items';
-import { clearStorageIDData } from '../../../../../renderer/store/inventory/inventoryActions';
-import { setRenameModal } from '../../../../../renderer/store/actions/modalMove actions';
+import { ReducerManager } from 'renderer/functionsClasses/reducerManager';
+import { HandleStorageData } from 'renderer/functionsClasses/storageUnits/storageUnitsClass';
+import { getAllStorages } from 'renderer/functionsClasses/storageUnits/storageUnitsFunctions';
+import { ItemRowStorage } from 'renderer/interfaces/items';
+import { clearStorageIDData } from 'renderer/store/inventory/inventoryActions';
+import { setRenameModal } from 'renderer/store/actions/modalMove actions';
 import {
   moveFromAddCasketToStorages,
   moveFromRemoveCasket,
   moveFromReset,
   moveFromSetFull,
   moveFromsetSearchFieldStorage,
-} from '../../../../../renderer/store/actions/moveFromActions';
+} from 'renderer/store/actions/moveFromActions';
 import { LoadingButton } from '../../shared/animations';
 import EmptyComponent from '../../shared/emptyState';
 import { classNames } from '../../shared/filters/inventoryFunctions';
 import RenameModal from '../../shared/modals & notifcations/modalRename';
 import { createCSGOImage } from '../../../../functionsClasses/createCSGOImage';
+import { ConvertPrices } from 'renderer/functionsClasses/prices';
 
 function content() {
   const dispatch = useDispatch();
   const fromReducer = useSelector((state: any) => state.moveFromReducer);
   let ReducerClass = new ReducerManager(useSelector);
 
+  let currentState = ReducerClass.getStorage();
+
   const [getLoadingButton, setLoadingButton] = useState(false);
   const [storageLoading, setStorageLoading] = useState(false);
-  const inventory = ReducerClass.getStorage('inventoryReducer');
-  const fromSelector = ReducerClass.getStorage('moveFromReducer');
-  const pricesResult = ReducerClass.getStorage('pricingReducer');
-  const settingsData = ReducerClass.getStorage('settingsReducer');
-  const inventoryFiltersReducer = ReducerClass.getStorage(
-    'inventoryFiltersReducer'
-  );
-  const moveFromReducer = ReducerClass.getStorage('moveFromReducer');
+  const inventory = useSelector((state: any) => state.inventoryReducer);
+  const fromSelector = useSelector((state: any) => state.moveFromReducer);
+  const pricesResult = useSelector((state: any) => state.pricingReducer);
+  const settingsData = useSelector((state: any) => state.settingsReducer);
+
+  useEffect(() => {
+    if (fromSelector.activeStorages.length === 0 || storageLoading) {
+      return;
+    }
+
+    let disposed = false;
+
+    async function refreshOpenStorages() {
+      const openStorageRows = inventory.inventory.filter((row) =>
+        fromSelector.activeStorages.includes(row.item_id)
+      );
+
+      if (openStorageRows.length === 0) {
+        return;
+      }
+
+      try {
+        const storageClass = new HandleStorageData(dispatch, currentState);
+        let addArray: Array<ItemRowStorage> = [];
+
+        for (const storageRow of openStorageRows) {
+          if (disposed) {
+            return;
+          }
+
+          addArray = await storageClass.addStorage(storageRow, addArray, false);
+        }
+      } catch (error) {
+        console.error('Failed to refresh open storages', error);
+      }
+    }
+
+    refreshOpenStorages();
+
+    return () => {
+      disposed = true;
+    };
+  }, [
+    dispatch,
+    fromSelector.activeStorages,
+    inventory.inventory,
+    storageLoading,
+  ]);
 
   // Clear all filters
 
@@ -63,7 +106,7 @@ function content() {
       dispatch(moveFromRemoveCasket(storageRow.item_id));
       setLoadingSetStorage(false);
     } else {
-      new HandleStorageData(dispatch, settingsData, pricesResult, moveFromReducer, inventory, inventoryFiltersReducer)
+      new HandleStorageData(dispatch, currentState)
         .addStorage(storageRow)
         .then(() => {
           setLoadingSetStorage(false);
@@ -78,32 +121,26 @@ function content() {
 
   // Get all storage unit data
   async function getAllStor() {
-    setLoadingSetStorage(true)
-    getAllStorages(dispatch, settingsData, pricesResult, moveFromReducer, inventory, inventoryFiltersReducer).then(() => {
-      setLoadingSetStorage(false)
-    })
+    setLoadingSetStorage(true);
+    getAllStorages(dispatch, currentState).then(() => {
+      setLoadingSetStorage(false);
+    });
   }
 
   // Get all storage unit data
   async function unMarkAllStorages() {
-    dispatch(moveFromReset())
+    dispatch(moveFromReset());
   }
 
   // Get prices for storage units
   let totalDict = {} as any;
+  const classConvert = new ConvertPrices(settingsData, pricesResult);
   inventory.storageInventory.forEach((projectRow) => {
     if (totalDict[projectRow.storage_id] == undefined) {
       totalDict[projectRow.storage_id] = 0;
     }
-
-    let pricingAmount = totalDict[projectRow.storage_id];
-    pricingAmount +=
-      projectRow.combined_QTY *
-      pricesResult.prices[
-        projectRow.item_name + projectRow.item_wear_name || ''
-      ]?.[settingsData.source.title] *
-      settingsData.currencyPrice[settingsData.currency];
-    totalDict[projectRow.storage_id] = pricingAmount;
+    totalDict[projectRow.storage_id] +=
+      classConvert.getPrice(projectRow, true) * projectRow.combined_QTY;
   });
 
   // Sort run
@@ -126,21 +163,21 @@ function content() {
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <RenameModal />
-      <div className="border-gray-200 px-4 py-4 sm:flex sm:items-center sm:justify-between ">
+      <div className="border-[var(--border-default)] px-4 py-4 sm:flex sm:items-center sm:justify-between ">
         <div className="flex items-center">
-          <h2 className="text-gray-500 text-xs font-medium uppercase mr-3 tracking-wide">
-            Storage units
+          <h2 className="text-[var(--text-tertiary)] text-xs font-medium uppercase mr-3 tracking-wide">
+            存储单元
           </h2>
           <label htmlFor="search" className="sr-only">
-            Search storages
+            搜索存储单元
           </label>
-          <div className="relative rounded-md dark:border-opacity-50 border-gray-200 border-l-2 focus:outline-none focus:outline-none">
+          <div className="relative rounded-md border-[var(--border-default)] border-l-2 focus:outline-none focus:outline-none">
             <div
               className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
               aria-hidden="true"
             >
               <SearchIcon
-                className="mr-3 h-4 w-4 text-gray-400"
+                className="mr-3 h-4 w-4 text-[var(--text-tertiary)]"
                 aria-hidden="true"
               />
             </div>
@@ -149,8 +186,8 @@ function content() {
               name="search"
               id="search"
               value={fromSelector.searchInputStorage}
-              className="block w-full pb-0.5  focus:outline-none dark:text-dark-white pl-9 sm:text-sm border-gray-300 h-7 dark:bg-dark-level-one dark:rounded-none dark:bg-dark-level-one dark:rounded-none"
-              placeholder="Search storages"
+              className="block w-full pb-0.5 focus:outline-none text-[var(--text-primary)] pl-9 sm:text-sm h-7 bg-transparent placeholder:text-[var(--text-tertiary)]"
+              placeholder="搜索存储单元"
               spellCheck="false"
               onChange={(e) =>
                 dispatch(moveFromsetSearchFieldStorage(e.target.value))
@@ -163,10 +200,10 @@ function content() {
             to=""
             type="button"
             onClick={() => getAllStor()}
-            className="focus:outline-none focus:bg-dark-level-four order-1 ml-3  order-1 inline-flex items-center px-4 py-2 hover:border hover:shadow-sm dark:hover:bg-dark-level-four  text-sm font-medium rounded-md text-gray-700  hover:bg-gray-50 sm:order-0 sm:ml-0"
+            className="focus:outline-none order-1 ml-3 inline-flex items-center px-4 py-2 hover:bg-[var(--bg-level-two)] text-sm font-medium rounded-md text-[var(--text-secondary)] sm:order-0 sm:ml-0"
           >
             <CheckIcon
-              className=" h-4 w-4 text-gray-700 dark:text-dark-white "
+              className="h-4 w-4 text-[var(--text-primary)]"
               aria-hidden="true"
             />
           </Link>
@@ -174,10 +211,10 @@ function content() {
             to=""
             type="button"
             onClick={() => unMarkAllStorages()}
-            className="focus:outline-none focus:bg-dark-level-four order-1 ml-3  order-1 inline-flex items-center px-4 py-2 hover:border hover:shadow-sm dark:hover:bg-dark-level-four  text-sm font-medium rounded-md text-gray-700  hover:bg-gray-50 sm:order-0 sm:ml-0"
+            className="focus:outline-none order-1 ml-3 inline-flex items-center px-4 py-2 hover:bg-[var(--bg-level-two)] text-sm font-medium rounded-md text-[var(--text-secondary)] sm:order-0 sm:ml-0"
           >
             <XIcon
-              className="h-4 w-4 text-gray-700 dark:text-dark-white"
+              className="h-4 w-4 text-[var(--text-primary)]"
               aria-hidden="true"
             />
           </Link>
@@ -185,35 +222,35 @@ function content() {
           <Link
             to=""
             type="button"
-            className="order-last inline-flex  items-center px-4 py-2 border border-transparent dark:hover:bg-dark-level-four hover:bg-gray-50 focus:outline-none"
+            className="order-last inline-flex items-center px-4 py-2 border border-transparent hover:bg-[var(--bg-level-two)] focus:outline-none"
             onClick={() => refreshInventory()}
           >
             {getLoadingButton ? (
               <LoadingButton />
             ) : (
               <RefreshIcon
-                className="h-4 w-4 text-gray-500 dark:text-dark-white"
+                className="h-4 w-4 text-[var(--text-secondary)]"
                 aria-hidden="true"
               />
             )}
           </Link>
-          <span className="mr-3 text-gray-500 dark:text-dark-white text-xs font-medium uppercase tracking-wide">
-            hide full
+          <span className="mr-3 text-[var(--text-tertiary)] text-xs font-medium uppercase tracking-wide">
+            隐藏已满
           </span>
           <Switch
             checked={fromReducer.hideFull}
             onChange={() => dispatch(moveFromSetFull())}
             className={classNames(
               fromReducer.hideFull
-                ? 'bg-indigo-600 dark:bg-indigo-700'
-                : 'bg-gray-200',
-              'relative inline-flex mr-3 shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none'
+                ? 'bg-[var(--accent-primary)]'
+                : 'bg-[var(--bg-level-three)]',
+              'relative inline-flex mr-3 flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none'
             )}
           >
             <span
               className={classNames(
                 fromReducer.hideFull ? 'translate-x-5' : 'translate-x-0',
-                'pointer-events-none relative inline-block h-5 w-5 rounded-full bg-white  shadow transform ring-0 transition ease-in-out duration-200'
+                'pointer-events-none relative inline-block h-5 w-5 rounded-full bg-[var(--text-primary)] shadow transform ring-0 transition ease-in-out duration-200'
               )}
             >
               <span
@@ -226,7 +263,7 @@ function content() {
                 aria-hidden="true"
               >
                 <svg
-                  className="h-3 w-3 text-gray-400"
+                  className="h-3 w-3 text-[var(--text-tertiary)]"
                   fill="none"
                   viewBox="0 0 12 12"
                 >
@@ -249,7 +286,7 @@ function content() {
                 aria-hidden="true"
               >
                 <svg
-                  className="h-3 w-3 text-indigo-600"
+                  className="h-3 w-3 text-[var(--accent-primary)]"
                   fill="currentColor"
                   viewBox="0 0 12 12"
                 >
@@ -337,30 +374,28 @@ function content() {
                   <div
                     className={classNames(
                       fromSelector.activeStorages.includes(project.item_id)
-                        ? 'border-green-300 '
-                        : 'border-gray-200 ',
-                      'shrink-0 h-full  flex items-center justify-center w-16 dark:border-opacity-50 text-white border-t border-l border-b rounded-l-md dark:bg-dark-level-two'
+                        ? 'border-[#A855F7] '
+                        : 'border-[var(--border-default)] ',
+                      'flex-shrink-0 h-full flex items-center justify-center w-16 text-white border-t border-l border-b rounded-l-md bg-[var(--bg-level-two)] transition-colors duration-150'
                     )}
                   >
                     <img
                       className={classNames(
                         fromSelector.activeStorages.includes(project.item_id)
                           ? ''
-                          : 'opacity-50 dark:opacity-40',
+                          : 'opacity-50',
                         'max-w-none h-11 w-11  object-cover'
                       )}
-                      src={
-                        createCSGOImage(project.item_url)
-                      }
+                      src={createCSGOImage(project.item_url)}
                     />
                   </div>
                 </Link>
                 <div
                   className={classNames(
                     fromSelector.activeStorages.includes(project.item_id)
-                      ? 'border-green-300'
-                      : 'border-gray-200',
-                    'flex-1 dark:bg-dark-level-two dark:border-opacity-50 flex items-center justify-between border-t border-r border-b bg-white rounded-r-md truncate'
+                      ? 'border-[#A855F7]'
+                      : 'border-[var(--border-default)]',
+                    'flex-1 bg-[var(--bg-level-two)] flex items-center justify-between border-t border-r border-b rounded-r-md truncate transition-colors duration-150'
                   )}
                 >
                   <Link
@@ -373,7 +408,7 @@ function content() {
                     )}
                     key={project.item_id}
                   >
-                    <div className="flex-1 px-3 py-2 text-sm dark:text-dark-white truncate">
+                    <div className="flex-1 px-3 py-2 text-sm text-[var(--text-primary)] truncate">
                       {project.item_customname != null ? (
                         project.item_customname
                       ) : (
@@ -390,15 +425,15 @@ function content() {
                             )
                           }
                           className={classNames(
-                            'block text-sm text-blue-800 pointer-events-auto	'
+                            'block text-sm text-[var(--accent-primary)] pointer-events-auto'
                           )}
                         >
                           {' '}
-                          Activate me
+                          激活
                         </Link>
                       )}
-                      <p className="text-gray-500">
-                        {project.item_storage_total} Items
+                      <p className="text-[var(--text-secondary)]">
+                        {project.item_storage_total} 件物品
                         {totalDict[project.item_id] != undefined
                           ? ' | ' +
                             new Intl.NumberFormat(settingsData.locale, {
@@ -410,9 +445,9 @@ function content() {
                       </p>
                     </div>
                   </Link>
-                  <Menu as="div" className="shrink-0 pr-2">
-                    <Menu.Button className="w-8 h-8 inline-flex items-center justify-center text-gray-400 rounded-full hover:text-gray-500">
-                      <span className="sr-only">Open options</span>
+                  <Menu as="div" className="flex-shrink-0 pr-2">
+                    <Menu.Button className="w-8 h-8 inline-flex items-center justify-center text-[var(--text-tertiary)] rounded-full hover:text-[var(--text-secondary)]">
+                      <span className="sr-only">打开选项</span>
                       <DotsVerticalIcon
                         className="w-5 h-5"
                         aria-hidden="true"
@@ -427,7 +462,7 @@ function content() {
                       leaveFrom="transform opacity-100 scale-100"
                       leaveTo="transform opacity-0 scale-95"
                     >
-                      <Menu.Items className="z-10 mx-3 origin-top-right absolute dark:bg-dark-level-three right-10 top-3 w-48 mt-1 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-200 focus:outline-none">
+                      <Menu.Items className="z-10 mx-3 origin-top-right absolute bg-[var(--bg-level-three)] border border-[var(--border-default)] right-10 top-3 w-48 mt-1 rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.6)] divide-y divide-[var(--border-default)] focus:outline-none">
                         <div className="py-1">
                           <Menu.Item>
                             {({ active }) => (
@@ -445,13 +480,13 @@ function content() {
                                 }
                                 className={classNames(
                                   active
-                                    ? 'bg-gray-100 text-gray-900 dark:bg-dark-level-four'
-                                    : 'text-gray-700',
-                                  'block px-4 py-2 text-sm dark:text-dark-white'
+                                    ? 'bg-[var(--bg-level-four)] text-[var(--text-primary)]'
+                                    : 'text-[var(--text-secondary)]',
+                                  'block px-4 py-2 text-sm'
                                 )}
                               >
                                 {' '}
-                                Rename
+                                重命名
                               </Link>
                             )}
                           </Menu.Item>

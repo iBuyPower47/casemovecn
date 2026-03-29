@@ -1,4 +1,4 @@
-import { Inventory } from "../../../renderer/interfaces/states";
+import { Inventory } from "renderer/interfaces/states";
 import { InventoryMatchingObject } from "./inventoryInterfaces";
 
 const initialState: Inventory = {
@@ -76,7 +76,7 @@ export class InventoryActionsReducer {
     // Add storage unit items
     addStorageUnitsItems() {
         const add_to_filtered = this.state.storageInventory?.filter(id => id.storage_id != this.action.payload.casketID) || []
-        const add_to_filtered_raw = this.state.storageInventoryRaw?.filter(id => id.storage_id != this.action.pay) || []
+        const add_to_filtered_raw = this.state.storageInventoryRaw?.filter(id => id.storage_id != this.action.payload.casketID) || []
         this.action.payload.storageData.forEach(storageRow => add_to_filtered.push(storageRow))
         this.action.payload.storageRowsRaw.forEach(storageRow => {
             add_to_filtered_raw.push(storageRow)
@@ -122,4 +122,3 @@ export class InventoryActionsReducer {
 export function inventoryReducer(state = initialState, action) {
     return new InventoryActionsReducer(state, action).relevantFunction()
 }
-

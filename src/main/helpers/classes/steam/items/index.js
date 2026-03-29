@@ -1,12 +1,9 @@
 const fs = require('fs');
 const axios = require('axios');
 
-const itemsLink =
-  '';
-const chinese_translationsLink =
-  '';
-const english_translationsLink =
-  '';
+const itemsLink = 'https://127.0.0.1:8080/items_game.json';
+const chinese_translationsLink = 'https://127.0.0.1:8080/csgo_schinese.json';
+const english_translationsLink = 'https://127.0.0.1:8080/csgo_english.json';
 
 function fileCatcher(endNote) {
   return `${csgo_install_directory}${endNote}`;

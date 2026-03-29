@@ -1,6 +1,6 @@
 /* This example requires Tailwind CSS v2.0+ */
-import { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import { Fragment, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   cancelModal,
@@ -9,33 +9,36 @@ import {
   moveModalAddToFail,
   moveModalResetPayload,
   moveModalUpdate,
-} from '../../../../../renderer/store/actions/modalMove actions';
-import { moveToClearAll } from '../../../../../renderer/store/actions/moveToActions';
+} from 'renderer/store/actions/modalMove actions';
 import {
   moveFromClearAll,
   moveFromReset,
-} from '../../../../../renderer/store/actions/moveFromActions';
+} from 'renderer/store/actions/moveFromActions';
+import { moveToClearAll } from 'renderer/store/actions/moveToActions';
 
 export default function MoveModal() {
   const waitTime = 100;
-  // const [hasRun, setRun] = useState(false);
-  const [seenID, setID] = useState('');
-  const [seenStorage, setStorage] = useState('');
+  const refreshDelayMs = 250;
+  const refreshFollowUpMs = 900;
+  const processedPayloadRef = useRef('');
+  const previousStorageRef = useRef('');
   const dispatch = useDispatch();
   const modalData = useSelector((state: any) => state.modalMoveReducer);
   const settingsData = useSelector((state: any) => state.settingsReducer);
+
   async function cancelMe() {
     window.electron.ipcRenderer.refreshInventory();
     dispatch(closeMoveModal());
     dispatch(cancelModal(modalData.modalPayload['key']));
-
     dispatch(closeMoveModal());
+
     if (modalData.modalPayload['type'] == 'to') {
       dispatch(moveToClearAll());
     }
     if (modalData.modalPayload['type'] == 'from') {
       dispatch(moveFromClearAll());
     }
+
     dispatch(modalResetStorageIdsToClearFrom());
     dispatch(moveModalResetPayload());
   }
@@ -43,78 +46,93 @@ export default function MoveModal() {
   const fastMode = settingsData.fastMove;
 
   async function runModal() {
-    if (modalData.moveOpen) {
-      if (modalData.doCancel.includes(modalData.modalPayload['key']) == false) {
-        if (modalData.modalPayload['type'] == 'to') {
+    if (!modalData.moveOpen) {
+      return;
+    }
 
-          if (fastMode  && modalData.query.length > 1) {
-            window.electron.ipcRenderer.moveToStorageUnit(
-              modalData.modalPayload['storageID'],
-              modalData.modalPayload['itemID'],
-              true
-            );
-            await new Promise(r => setTimeout(r, waitTime));
-          } else {
-            try {
-              await window.electron.ipcRenderer.moveToStorageUnit(
-                modalData.modalPayload['storageID'],
-                modalData.modalPayload['itemID'],
-                false
-              );
-            } catch {
-              dispatch(moveModalAddToFail());
-            }
-          }
+    if (modalData.doCancel.includes(modalData.modalPayload['key'])) {
+      return;
+    }
 
-          dispatch(moveModalUpdate());
-          if (modalData.modalPayload['isLast']) {
-            dispatch(moveToClearAll());
-          }
+    if (modalData.modalPayload['type'] == 'to') {
+      if (fastMode && modalData.query.length > 1) {
+        window.electron.ipcRenderer.moveToStorageUnit(
+          modalData.modalPayload['storageID'],
+          modalData.modalPayload['itemID'],
+          true
+        );
+        await new Promise((r) => setTimeout(r, waitTime));
+      } else {
+        try {
+          await window.electron.ipcRenderer.moveToStorageUnit(
+            modalData.modalPayload['storageID'],
+            modalData.modalPayload['itemID'],
+            false
+          );
+        } catch {
+          dispatch(moveModalAddToFail());
         }
-        if (modalData.modalPayload['type'] == 'from') {
-          if (fastMode) {
+      }
 
-            window.electron.ipcRenderer.moveFromStorageUnit(
-              modalData.modalPayload['storageID'],
-              modalData.modalPayload['itemID'],
-              true
-            );
-            await new Promise(r => setTimeout(r, waitTime));
-
-          } else {
-            try {
-              await window.electron.ipcRenderer.moveFromStorageUnit(
-               modalData.modalPayload['storageID'],
-               modalData.modalPayload['itemID'],
-               false
-             );
-             // await new Promise(r => setTimeout(r, waitTime));
-           } catch {
-             dispatch(moveModalAddToFail());
-           }
-
-          }
-
-          dispatch(moveModalUpdate());
-        }
-        if (modalData.modalPayload['isLast']) {
-          window.electron.ipcRenderer.refreshInventory();
-        }
-
+      dispatch(moveModalUpdate());
+      if (modalData.modalPayload['isLast']) {
+        dispatch(moveToClearAll());
       }
     }
+
+    if (modalData.modalPayload['type'] == 'from') {
+      if (fastMode) {
+        window.electron.ipcRenderer.moveFromStorageUnit(
+          modalData.modalPayload['storageID'],
+          modalData.modalPayload['itemID'],
+          true
+        );
+        await new Promise((r) => setTimeout(r, waitTime));
+      } else {
+        try {
+          await window.electron.ipcRenderer.moveFromStorageUnit(
+            modalData.modalPayload['storageID'],
+            modalData.modalPayload['itemID'],
+            false
+          );
+        } catch {
+          dispatch(moveModalAddToFail());
+        }
+      }
+
+      dispatch(moveModalUpdate());
+    }
+
+    if (modalData.modalPayload['isLast']) {
+      await new Promise((resolve) => setTimeout(resolve, refreshDelayMs));
+      window.electron.ipcRenderer.refreshInventory();
+      setTimeout(() => {
+        window.electron.ipcRenderer.refreshInventory();
+      }, refreshFollowUpMs);
+    }
   }
-  if (
-    Object.keys(modalData.modalPayload).length !== 0 &&
-    seenID != modalData.modalPayload.itemID
-  ) {
-    if (modalData.modalPayload.storageID != seenStorage) {
+
+  useEffect(() => {
+    const itemID = modalData.modalPayload?.itemID;
+    const operationKey = modalData.modalPayload?.key || '';
+    const payloadKey = itemID ? `${operationKey}:${itemID}` : '';
+
+    if (!modalData.moveOpen || !itemID || payloadKey === processedPayloadRef.current) {
+      return;
+    }
+
+    if (
+      modalData.modalPayload?.type === 'from' &&
+      modalData.modalPayload?.storageID !== previousStorageRef.current
+    ) {
       dispatch(moveFromReset());
     }
-    setStorage;
-    setID(modalData.modalPayload.itemID);
+
+    previousStorageRef.current = modalData.modalPayload?.storageID || '';
+    processedPayloadRef.current = payloadKey;
     runModal();
-  }
+  }, [dispatch, fastMode, modalData]);
+
   const devMode = false;
 
   return (
@@ -130,10 +148,10 @@ export default function MoveModal() {
     >
       <Dialog
         as="div"
-        className="fixed z-10 inset-0 overflow-y-auto"
+        className="fixed inset-0 z-10 overflow-y-auto"
         onClose={() => cancelMe()}
       >
-        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -143,12 +161,11 @@ export default function MoveModal() {
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <Dialog.Panel className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-opacity-85 transition-opacity" />
+            <Dialog.Overlay className="fixed inset-0 bg-black/88 transition-opacity" />
           </Transition.Child>
 
-          {/* This element is to trick the browser into centering the modal contents. */}
           <span
-            className="hidden sm:inline-block sm:align-middle sm:h-screen"
+            className="hidden sm:inline-block sm:h-screen sm:align-middle"
             aria-hidden="true"
           >
             &#8203;
@@ -162,63 +179,52 @@ export default function MoveModal() {
             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
-            <div className="inline-block align-bottom bg-white dark:bg-dark-level-two rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full sm:p-6">
+            <div className="inline-block transform overflow-hidden rounded-xl foil-border noise-texture px-4 pt-5 pb-4 text-left align-bottom shadow-modal-foil transition-all sm:my-8 sm:w-full sm:max-w-sm sm:align-middle sm:p-6">
               <div>
-                <div className="mx-auto flex items-center  justify-center h-14 w-14 rounded-full bg-blue-500 dark:bg-blue-700">
-                  <span className="animate-ping absolute inline-flex h-14 w-14 rounded-full dark:bg-blue-700 opacity-75"></span>
-                  <span className="text-white dark:text-dark-white">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent-primary)]">
+                  <span className="absolute inline-flex h-14 w-14 animate-ping rounded-full opacity-75 bg-[var(--accent-primary)]"></span>
+                  <span className="text-black font-semibold">
                     {modalData.modalPayload['number']}
                   </span>
                 </div>
                 <div className="mt-3 text-center sm:mt-5">
                   <Dialog.Title
                     as="h3"
-                    className="text-lg leading-6 font-medium text-gray-900 dark:text-dark-white"
+                    className="text-lg font-medium leading-6 text-[var(--text-primary)]"
                   >
                     {modalData.modalPayload['name']}
                   </Dialog.Title>
                   <div className="mt-2">
-                    <p className="text-sm text-gray-500">
-                      Please wait while the app moves your items.
-                      {fastMode == false ? ' \nWant to speed this up? Enable fastmove in the settings.': ''}
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      请等待应用移动您的物品，
+                      {fastMode == false
+                        ? ' \n想要加快速度？请在设置中启用快速移动。'
+                        : ' \n更多工具请加入QQ群！'}
                     </p>
 
                     {modalData.totalFailed == 0 ? (
                       ''
                     ) : (
-                      <p className="text-sm text-red-500">
-                        Total failed: {modalData.totalFailed}
+                      <p className="text-sm text-[var(--error)]">
+                        失败总数: {modalData.totalFailed}
                       </p>
                     )}
                   </div>
                 </div>
               </div>
 
-
               <div className="mt-5 sm:mt-6">
                 <button
                   type="button"
-                  className="dark:bg-dark-level-two dark:text-dark-white mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:col-start-1 sm:text-sm"
+                  className="mt-3 inline-flex w-full justify-center rounded-md border border-[var(--border-default)] bg-[var(--bg-level-two)] px-4 py-2 text-base font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-level-three)] hover:text-[var(--text-primary)] transition-colors duration-150 sm:mt-0 sm:col-start-1 sm:text-sm"
                   onClick={() => cancelMe()}
                 >
-                  Cancel
+                  取消
                 </button>
               </div>
-              <div className="flex flex-wrap content-center items-center justify-center mr-3 mt-2 text-gray-400 dark:text-dark-white text-xs font-medium uppercase tracking-wide">
-
-          {/* This element is to trick the browser into centering the modal contents.
-            <div>
-              ENABLE FAST MODE
-            </div> */}
-
-
-
-
-          </div>
+              <div className="mr-3 mt-2 flex flex-wrap content-center items-center justify-center text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]"></div>
             </div>
-
           </Transition.Child>
-
         </div>
       </Dialog>
     </Transition.Root>

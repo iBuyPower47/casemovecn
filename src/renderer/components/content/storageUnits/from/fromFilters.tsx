@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Disclosure } from '@headlessui/react';
 import {
   ArchiveIcon,
-  DocumentDownloadIcon,
   FilterIcon,
   SaveAsIcon,
   SearchIcon,
@@ -12,17 +12,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   moveFromClearAll,
   moveFromsetSearchField,
-} from '../../../../../renderer/store/actions/moveFromActions';
+} from 'renderer/store/actions/moveFromActions';
 import MoveModal from '../../shared/modals & notifcations/modalMove';
-import { moveModalQuerySet } from '../../../../../renderer/store/actions/modalMove actions';
+import { moveModalQuerySet } from 'renderer/store/actions/modalMove actions';
 import PricingAmount from '../../shared/filters/pricingAmount';
-import { downloadReport } from '../../../../../renderer/functionsClasses/downloadReport';
 import { classNames } from '../../shared/filters/inventoryFunctions';
 
 import StorageFilterDisclosure from './storageFilterDisclosure';
 import { fromGetFilterManager } from './fromFilterSetup';
-import { addMajorsFilters } from '../../../../../renderer/functionsClasses/filters/filters';
-import { searchFilter } from '../../../../../renderer/functionsClasses/filters/search';
+import { addMajorsFilters } from 'renderer/functionsClasses/filters/filters';
+import { searchFilter } from 'renderer/functionsClasses/filters/search';
+import { ConvertPrices } from 'renderer/functionsClasses/prices';
 const ClassFilters = fromGetFilterManager();
 
 // ClassFilters.loadFilter(CharacteristicsFilter, true, 'Include');
@@ -78,6 +78,7 @@ function content() {
   );
 
   let totalHighlighted = 0 as any;
+  let classConvert = new ConvertPrices(settingsData, pricesResult);
 
   inventoryFilter.forEach((projectRow) => {
     let filtered = fromReducer.totalToMove.filter(
@@ -85,28 +86,24 @@ function content() {
     );
     if (filtered.length > 0) {
       totalHighlighted +=
-        pricesResult.prices[
-          projectRow.item_name + projectRow.item_wear_name || ''
-        ]?.[settingsData.source.title] *
-        settingsData.currencyPrice[settingsData.currency] *
-        filtered[0][2].length;
+        (classConvert.getPrice(projectRow) ?? 0) * filtered[0][2].length;
     }
-    let individualPrice =
-      projectRow.combined_QTY *
-      pricesResult.prices[
-        projectRow.item_name + projectRow.item_wear_name || ''
-      ]?.[settingsData.source.title] *
-      settingsData.currencyPrice[settingsData.currency];
-    totalAmount += individualPrice = individualPrice ? individualPrice : 0;
+    totalAmount +=
+      classConvert.getPrice(projectRow, true) * projectRow.combined_QTY;
   });
   totalHighlighted = totalHighlighted.toFixed(0);
   totalAmount = totalAmount.toFixed(0);
-  addMajorsFilters(inventoryFilter).then((returnValue) => {
-    ClassFilters.loadFilter(returnValue, true);
-  });
+  // addMajorsFilters(inventoryFilter).then((returnValue) => {
+  //   ClassFilters.loadFilter(returnValue, true);
+  // });
+  useEffect(() => {
+    addMajorsFilters(inventoryFilter).then((returnValue) => {
+      ClassFilters.loadFilter(returnValue, true);
+    });
+  }, [inventoryFilter]);
 
   return (
-    <div className="bg-white mt-8">
+    <div className="bg-[var(--bg-level-one)]">
       {/* Filters */}
 
       <MoveModal />
@@ -114,33 +111,33 @@ function content() {
       <Disclosure
         as="section"
         aria-labelledby="filter-heading"
-        className="relative grid items-center border-b dark:bg-dark-level-one dark:border-opacity-50 "
+        className="relative grid items-center border-b border-[var(--border-default)] bg-[var(--bg-level-one)]"
       >
-        <div className="relative col-start-1 row-start-1 py-4 flex justify-between">
-          <div className="max-w-7xl flex items-center space-x-6 divide-x divide-gray-200 text-sm px-4 sm:px-6 lg:px-8">
+        <div className="relative col-start-1 row-start-1 py-3 flex justify-between">
+          <div className="max-w-7xl flex items-center space-x-6 divide-x divide-[var(--border-default)] text-sm px-4 sm:px-6 lg:px-8">
             <div>
-              <Disclosure.Button className="group text-gray-700 font-medium flex items-center text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-500">
+              <Disclosure.Button className="group font-medium flex items-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150">
                 <FilterIcon
-                  className="flex-none w-5 h-5 mr-2 text-gray-400 group-hover:text-gray-500"
+                  className="flex-none w-5 h-5 mr-2 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]"
                   aria-hidden="true"
                 />
                 {inventoryFilters.storageFilter.length == 0
-                  ? inventoryFilters.storageFilter.length + ' Filters'
-                  : inventoryFilters.storageFilter.length + ' Filter'}
+                  ? inventoryFilters.storageFilter.length + ' 个筛选'
+                  : inventoryFilters.storageFilter.length + ' 个筛选'}
               </Disclosure.Button>
             </div>
             <div className="pl-6">
               <button
                 type="button"
-                className="text-gray-500 dark:text-gray-400"
+                className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors duration-150"
                 onClick={() => dispatch(moveFromClearAll())}
               >
-                Clear all
+                清除全部
               </button>
             </div>
 
             <label htmlFor="search" className="sr-only">
-              Search items
+              搜索物品
             </label>
             <div className="relative rounded-md focus:outline-none focus:outline-none">
               <div
@@ -148,7 +145,7 @@ function content() {
                 aria-hidden="true"
               >
                 <SearchIcon
-                  className="mr-3 h-4 w-4 text-gray-400"
+                  className="mr-3 h-4 w-4 text-[var(--text-tertiary)]"
                   aria-hidden="true"
                 />
               </div>
@@ -157,8 +154,8 @@ function content() {
                 name="search"
                 id="search"
                 value={fromReducer.searchInput}
-                className="block w-full pb-0.5  focus:outline-none dark:text-dark-white pl-9 sm:text-sm border-gray-300 h-7 dark:bg-dark-level-one dark:rounded-none dark:bg-dark-level-one dark:rounded-none"
-                placeholder="Search items"
+                className="block w-full pb-0.5 focus:outline-none text-[var(--text-primary)] pl-9 sm:text-sm h-7 bg-transparent placeholder:text-[var(--text-tertiary)]"
+                placeholder="搜索物品"
                 spellCheck="false"
                 onChange={(e) =>
                   dispatch(moveFromsetSearchField(e.target.value))
@@ -167,28 +164,7 @@ function content() {
             </div>
           </div>
           <div className="flex justify-end justify-items-end max-w-7xl px-4 sm:px-6 lg:px-8 ">
-            <div className="flex items-center divide-x divide-gray-200">
-              <div className="pr-3">
-                <Link
-                  to=""
-                  type="button"
-                  onClick={() =>
-                    downloadReport(settingsData, pricesResult, inventoryFilter)
-                  }
-                  className={classNames(
-                    inventory.storageInventory.length == 0
-                      ? 'pointer-events-none border-gray-100'
-                      : 'hover:shadow-sm border-gray-200 ',
-                    'order-1 ml-3 inline-flex items-center px-4 py-2 border dark:bg-dark-level-three dark:border-none dark:border-opacity-0 dark:text-dark-white   text-sm font-medium rounded-md text-gray-500 bg-white hover:bg-gray-50 focus:outline-none focus:bg-gray-100 sm:order-0 sm:ml-0'
-                  )}
-                >
-                  <DocumentDownloadIcon
-                    className="mr-3 h-4 dark:text-dark-white w-4 text-gray-500"
-                    aria-hidden="true"
-                  />
-                  Download
-                </Link>
-              </div>
+            <div className="flex items-center divide-x divide-[var(--border-default)]">
               <div className="pl-3">
                 <PricingAmount
                   totalAmount={new Intl.NumberFormat(settingsData.locale, {
@@ -199,27 +175,27 @@ function content() {
                 />
               </div>
               <div className="pl-3">
-                <span className="mr-3 flex items-center text-gray-500 text-xs font-medium uppercase tracking-wide">
+                <span className="mr-3 flex items-center text-[var(--text-tertiary)] text-xs font-medium uppercase tracking-wide">
                   <ArchiveIcon
-                    className="flex-none w-5 h-5 mr-2 text-gray-400 group-hover:text-gray-500"
+                    className="flex-none w-5 h-5 mr-2 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]"
                     aria-hidden="true"
                   />{' '}
-                  <span className="text-green-500">
+                  <span className="text-[var(--success)]">
                     {1000 -
                       inventory.inventory.length -
                       fromReducer.totalItemsToMove}{' '}
-                    left
+                    剩余
                   </span>
                 </span>
               </div>
               <div className="pl-3">
-                <span className="mr-3 flex items-center text-gray-500 text-xs font-medium uppercase tracking-wide">
+                <span className="mr-3 flex items-center text-[var(--text-tertiary)] text-xs font-medium uppercase tracking-wide">
                   <SwitchHorizontalIcon
-                    className="flex-none w-5 h-5 mr-2 text-gray-400 group-hover:text-gray-500"
+                    className="flex-none w-5 h-5 mr-2 text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]"
                     aria-hidden="true"
                   />{' '}
-                  <span className="text-blue-500">
-                    {fromReducer.totalItemsToMove} Items
+                  <span className="text-[var(--accent-primary)]">
+                    {fromReducer.totalItemsToMove} 件物品
                   </span>
                 </span>
               </div>
@@ -230,14 +206,14 @@ function content() {
                   onClick={() => moveItems()}
                   className={classNames(
                     fromReducer.totalItemsToMove == 0
-                      ? 'pointer-events-none border-gray-100 bg-dark-level-one'
-                      : 'shadow-sm border-gray-200 bg-dark-level-three',
-                    'order-1 ml-3 inline-flex items-center px-4 py-2 border dark:border-none dark:border-opacity-0 dark:text-dark-white text-sm font-medium rounded-md text-gray-700 hover:bg-dark-level-four  sm:order-0 sm:ml-0'
+                      ? 'pointer-events-none bg-[var(--bg-level-two)] text-[var(--text-disabled)]'
+                      : 'bg-[var(--bg-level-three)] hover:bg-[var(--bg-level-four)] text-[var(--text-primary)]',
+                    'order-1 ml-3 inline-flex items-center px-4 py-2 border-none text-sm font-medium rounded-md sm:order-0 sm:ml-0'
                   )}
                 >
-                  Move
+                  取出
                   <SaveAsIcon
-                    className="ml-3 dark:text-dark-white h-4 w-4 text-gray-700"
+                    className="ml-3 h-4 w-4 text-current"
                     aria-hidden="true"
                   />
                 </Link>

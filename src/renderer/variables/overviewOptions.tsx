@@ -1,12 +1,16 @@
-import { OverviewOptionsBy, OverviewOptionsLeftCharts, OverviewOptionsRightCharts } from "../../renderer/interfaces/overview";
+import {
+  OverviewOptionsBy,
+  OverviewOptionsLeftCharts,
+  OverviewOptionsRightCharts,
+} from 'renderer/interfaces/overview';
 export const OveviewBy: OverviewOptionsBy = {
-    price: 'Price',
-    volume: 'Volume'
-}
+  price: '价格',
+  volume: '数量',
+};
 export const OverviewRightCharts: OverviewOptionsRightCharts = {
-    itemDistribution: 'Category'
-}
+  itemDistribution: '分类',
+};
 
 export const OverviewLeftCharts: OverviewOptionsLeftCharts = {
-    overall: 'Overall'
-}
+  overall: '总览',
+};

@@ -2,7 +2,7 @@
 import { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { useDispatch, useSelector } from 'react-redux';
-import { closeRenameModal } from '../../../../../renderer/store/actions/modalMove actions';
+import { closeRenameModal } from 'renderer/store/actions/modalMove actions';
 import { classNames } from '../filters/inventoryFunctions';
 import { createCSGOImage } from '../../../../functionsClasses/createCSGOImage';
 
@@ -40,7 +40,7 @@ export default function RenameModal() {
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <Dialog.Panel className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-opacity-85 transition-opacity" />
+            <Dialog.Overlay className="fixed inset-0 bg-black/88 transition-opacity" />
           </Transition.Child>
 
           {/* This element is to trick the browser into centering the modal contents. */}
@@ -59,11 +59,11 @@ export default function RenameModal() {
             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
-            <div className="inline-block align-bottom dark:bg-dark-level-two bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div className="inline-block align-bottom foil-border noise-texture rounded-xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-modal-foil transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <div>
                 <div className="mx-auto flex items-center justify-center h-16 w-16">
                   <img
-                    className="w-16 text-green-600"
+                    className="w-16 text-[var(--accent-primary)]"
                     src={
                       createCSGOImage("econ/tools/casket")
                     }
@@ -72,21 +72,21 @@ export default function RenameModal() {
                 <div className="mt-3 text-center sm:mt-5">
                   <Dialog.Title
                     as="h3"
-                    className="text-lg leading-6 font-medium text-gray-900"
+                    className="text-lg leading-6 font-medium text-[var(--text-primary)]"
                   ></Dialog.Title>
                   <div className="pl-20 pr-20 mt-2">
-                    <div className="relative border border-gray-300 rounded-md px-3 py-2 shadow-sm focus-within:ring-1 focus-within:ring-indigo-600 focus-within:border-indigo-600 dark:focus-within:ring-indigo-800 dark:focus-within:border-indigo-800">
+                    <div className="relative border border-[var(--border-default)] rounded-md px-3 py-2 shadow-sm focus-within:ring-1 focus-within:ring-[var(--accent-primary)] focus-within:border-[var(--accent-primary)]">
                       <label
                         htmlFor="name"
-                        className="absolute -top-2 left-2 -mt-px inline-block px-1 bg-white dark:text-dark-white dark:bg-dark-level-two text-xs font-medium text-gray-900"
+                        className="absolute -top-2 left-2 -mt-px inline-block px-1 bg-[var(--bg-level-two)] text-xs font-medium text-[var(--text-secondary)]"
                       >
-                        New name
+                        新名称
                       </label>
                       <input
                         type="text"
                         name="name"
                         id="name"
-                        className="block w-full border-0 p-0 focus:outline-none text-gray-900 placeholder-gray-500 focus:ring-0 sm:text-sm dark:bg-dark-level-two dark:text-dark-white"
+                        className="block w-full border-0 p-0 focus:outline-none bg-[var(--bg-level-two)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:ring-0 sm:text-sm"
                         placeholder={modalData.modalPayload.itemName}
                         onChange={(e) => setInputState(e.target.value)}
                       />
@@ -99,20 +99,20 @@ export default function RenameModal() {
                   type="button"
                   className={classNames(
                     inputState.length == 0
-                      ? 'pointer-events-none	bg-indigo-300 dark:bg-dark-level-three'
-                      : 'bg-indigo-600',
-                    'w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white  sm:col-start-2 sm:text-sm'
+                      ? 'pointer-events-none bg-[var(--bg-level-three)] text-[var(--text-disabled)]'
+                      : 'bg-[var(--accent-primary)] text-black hover:opacity-90',
+                    'w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium transition-all duration-150 sm:col-start-2 sm:text-sm'
                   )}
                   onClick={() => renameStorageUnit(inputState)}
                 >
-                  Confirm
+                  确认
                 </button>
                 <button
                   type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 dark:bg-dark-level-two dark:text-dark-white sm:mt-0 sm:col-start-1 sm:text-sm"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-[var(--border-default)] shadow-sm px-4 py-2 bg-[var(--bg-level-two)] text-base font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-level-three)] hover:text-[var(--text-primary)] transition-colors duration-150 sm:mt-0 sm:col-start-1 sm:text-sm"
                   onClick={() => dispatch(closeRenameModal())}
                 >
-                  Cancel
+                  取消
                 </button>
               </div>
             </div>

@@ -1,51 +1,45 @@
-import { Disclosure } from '@headlessui/react'
-import { useState } from 'react'
-import LoginForm from './loginForm'
-import UserGrid from './userManagement'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-Disclosure
+import { useState } from 'react';
+import LoginForm from './loginForm';
+import UserGrid from './userManagement';
+
 function LoginPageContent() {
-  const [getLock, setLock] = useState([''])
-  const [deleteUser, setdeleteUser] = useState('')
+  const [getLock, setLock] = useState(['']);
+  const [deleteUser, setdeleteUser] = useState('');
 
   return (
-    <>
-      {/*
-        This example requires updating your template:
-
-        ```
-        <html class="h-full bg-white">
-        <body class="h-full">
-        ```
-      */}
-      <main className="lg:min-h-full lg:overflow-hidden lg:flex lg:flex-row-reverse dark:bg-dark-level-two">
-
-
-        {/* Account switcher */}
-        <section aria-labelledby="summary-heading" className="hidden w-full max-w-xs flex-col lg:flex">
-
-
-          <UserGrid clickOnProfile={(username) => setLock(username)} runDeleteUser={() => setdeleteUser('')} deleteUser={deleteUser} />
-        </section>
-
-        {/* Login */}
-        <section
-          aria-labelledby="payment-heading"
-          className="flex-auto overflow-y-auto px-4 pt-12 pb-16 sm:px-6 sm:pt-16 lg:px-8 lg:pt-0 bg-white lg:pb-24 dark:bg-dark-level-one"
-        >
-          <div className="max-w-lg mx-auto">
-            <LoginForm isLock={getLock} replaceLock={() => setLock([''])} runDeleteUser={(username) => setdeleteUser(username)}/>
+    <main className="h-screen overflow-hidden bg-[var(--bg-level-one)] text-[var(--text-primary)]">
+      <div className="grid h-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="relative flex min-h-0 items-center justify-center overflow-x-hidden overflow-y-auto bg-[var(--bg-level-one)] px-6 py-12 lg:px-10 lg:py-16">
+          {/* Radial glow background */}
+          <div
+            className="pointer-events-none absolute left-1/2 top-0 h-[600px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{
+              background:
+                'radial-gradient(circle, rgba(168,85,247,0.06) 0%, rgba(0,191,165,0.04) 40%, transparent 70%)',
+            }}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-md">
+            <LoginForm
+              isLock={getLock}
+              replaceLock={() => setLock([''])}
+              runDeleteUser={(username) => setdeleteUser(username)}
+            />
           </div>
         </section>
-      </main>
-    </>
-  )
+
+        <aside className="hidden border-l border-[var(--border-default)] bg-[var(--bg-level-one)] lg:flex lg:flex-col overflow-hidden">
+          <UserGrid
+            clickOnProfile={(username) => setLock(username)}
+            runDeleteUser={() => setdeleteUser('')}
+            deleteUser={deleteUser}
+          />
+        </aside>
+      </div>
+    </main>
+  );
 }
 
 export default function LoginPage() {
-  return (
-    <Routes>
-        <Route path="*" element={<LoginPageContent />} />
-    </Routes>
-  );
+  return <LoginPageContent />;
 }
